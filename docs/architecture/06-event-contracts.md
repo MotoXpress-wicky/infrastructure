@@ -35,8 +35,6 @@ Who declares what:
 
 ---
 
-## Event catalog
-
 | Event name | Publisher | Published when |
 |---|---|---|
 | `user.registered` | user-service | a new account is created |
@@ -45,6 +43,7 @@ Who declares what:
 | `order.placed` | order-service | an order is created |
 | `order.paid` | order-service | the order is fully paid |
 | `order.shipped` | order-service | the order leaves the warehouse |
+| `order.cancelled` | order-service | an order is cancelled (before it ships) |
 | `payment.succeeded` | payment-service | the gateway confirms the money |
 | `payment.failed` | payment-service | the gateway rejects the payment |
 | `product.created` | product-service | a product is added |
@@ -58,8 +57,9 @@ Who declares what:
 | Consumer | Queue | Binding keys |
 |---|---|---|
 | order-service | `order.payment-events` | `payment.succeeded`, `payment.failed` |
-| notification-service | `notification.email` | `user.registered`, `user.password.reset`, `user.password.changed`, `order.placed`, `order.paid` |
-| notification-service | `notification.push` | `order.paid`, `order.shipped` |
+| payment-service | `payment.order-events` | `order.cancelled` |
+| notification-service | `notification.email` | `user.registered`, `user.password.reset`, `user.password.changed`, `order.placed`, `order.paid`, `order.shipped`, `order.cancelled` |
+| notification-service | `notification.push` | `order.paid`, `order.shipped`, `order.cancelled` |
 | recommendation-service | `reco.interactions` | `order.paid` |
 | recommendation-service | `reco.catalog` | `product.*` |
 
