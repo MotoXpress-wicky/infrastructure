@@ -2,16 +2,20 @@
 
 ```mermaid
 flowchart TB
-    req([HTTP request]) --> filter["JWT auth filter<br/>checks the token on each request"]
+    req([HTTP request]) --> filter["JWT auth filter<br/>checks the access token on each request"]
     filter --> ctrl["AuthController<br/>login, register, reset endpoints"]
 
     ctrl --> ratelimit["RateLimitService<br/>stops too many tries"]
     ctrl --> auth["AuthService<br/>login and register logic"]
     ctrl --> reset["PasswordResetService<br/>reset and change password"]
-    ctrl --> refresh["RefreshTokenService<br/>new access tokens"]
+    ctrl --> refresh["RefreshTokenService<br/>manages refresh tokens (create, rotate, check)"]
 
-    auth --> tokens["Token helpers<br/>JwtUtil + cookie services"]
-    refresh --> tokens
+    auth --> jwt["JwtUtil<br/>creates and reads the access token (JWT)"]
+    refresh --> jwt
+    filter --> jwt
+
+    auth --> cookie["Cookie services<br/>put tokens in cookies"]
+    refresh --> cookie
 
     auth --> repo["Repositories<br/>read and write users, tokens"]
     reset --> repo

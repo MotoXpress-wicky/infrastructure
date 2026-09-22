@@ -44,7 +44,9 @@ Who declares what:
 | `order.paid` | order-service | the order is fully paid |
 | `order.shipped` | order-service | the order leaves the warehouse |
 | `order.cancelled` | order-service | an order is cancelled (before it ships) |
+| `order.refunded` | order-service | refund for the order is completed |
 | `payment.succeeded` | payment-service | the gateway confirms the money |
+| `payment.refunded` | payment-service | successfully refunded for the transaction-id|
 | `payment.failed` | payment-service | the gateway rejects the payment |
 | `product.created` | product-service | a product is added |
 | `product.updated` | product-service | a product is edited |
@@ -56,10 +58,10 @@ Who declares what:
 
 | Consumer | Queue | Binding keys |
 |---|---|---|
-| order-service | `order.payment-events` | `payment.succeeded`, `payment.failed` |
+| order-service | `order.payment-events` | `payment.succeeded`, `payment.failed` ,`payment.refunded`|
 | payment-service | `payment.order-events` | `order.cancelled` |
-| notification-service | `notification.email` | `user.registered`, `user.password.reset`, `user.password.changed`, `order.placed`, `order.paid`, `order.shipped`, `order.cancelled` |
-| notification-service | `notification.push` | `order.paid`, `order.shipped`, `order.cancelled` |
+| notification-service | `notification.email` | `user.registered`, `user.password.reset`, `user.password.changed`, `order.placed`, `order.paid`, `order.shipped`, `order.cancelled` ,`order.refunded`|
+| notification-service | `notification.push` | `order.paid`, `order.shipped`, `order.cancelled` ,`order.refunded`|
 | recommendation-service | `reco.interactions` | `order.paid` |
 | recommendation-service | `reco.catalog` | `product.*` |
 

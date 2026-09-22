@@ -14,12 +14,14 @@ flowchart LR
     google[Google<br/>Social login]
     email[ACS Email<br/>All emails]
     onepay[OnePay<br/>Card payments]
+    captcha[Turnstile<br/>CAPTCHA]
 
     customer --> system
     admin --> system
     system --> google
     system --> email
     system --> onepay
+    system --> captcha
 ```
 
 ## Outside systems

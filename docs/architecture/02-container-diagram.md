@@ -6,14 +6,7 @@ databases, and the outside systems.
 
 Status: draft for review. Not final.
 
-## How to read the arrows
 
-- A solid arrow means HTTP. The caller sends a request and waits for the answer.
-- A dotted arrow means an event. The sender does not wait for any answer.
-- All events travel through RabbitMQ. Every event goes to one topic exchange
-  called `app.events`. The broker box is not drawn, to keep the picture clear.
-- Dotted arrow labels are the real event names.
-- The queues and bindings for these events are in the event contract.
 
 ```mermaid
 flowchart TB
@@ -26,21 +19,26 @@ flowchart TB
         user["user-service"]
         userdb[("user_db + Redis")]
     end
+
     subgraph productbox [product]
         product["product-service"]
         productdb[("product_db")]
     end
+
     subgraph orderbox [order]
         order["order-service"]
         orderdb[("order_db")]
     end
+
     subgraph paymentbox [payment]
         payment["payment-service"]
         paymentdb[("payment_db")]
     end
+
     subgraph notifbox [notification]
         notif["notification-service"]
     end
+
     subgraph recobox [recommendation]
         reco["recommendation-service"]
         recodb[("recommendation_db")]
@@ -72,13 +70,21 @@ flowchart TB
     onepay -->|payment result webhook| payment
     notif -->|send the email| acs
 
-    %% ---------- events: dotted line, no waiting, real event names ----------
-    payment -.->|"payment.succeeded<br/>payment.failed"| order
+    %% ---------- Events: dotted line, no waiting ----------
+    payment -.->|"payment.succeeded<br/>payment.failed<br/>payment.refunded"| order
+
     user -.->|"user.registered<br/>user.password.reset<br/>user.password.changed"| notif
-    order -.->|"order.placed<br/>order.paid<br/>order.shipped"| notif
+
+    order -.->|"order.placed<br/>order.paid<br/>order.shipped<br/>order.cancelled<br/>order.refund_requested<br/>order.refunded"| notif
+
     order -.->|"order.paid"| reco
+
     product -.->|"product.created<br/>product.updated<br/>product.deleted"| reco
+
+    %% ---------- Cancellation & Refund Events ----------
+    order -.->|"order.cancelled"| payment
 ```
+
 
 ## What each service does
 
