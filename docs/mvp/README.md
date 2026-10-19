@@ -1,0 +1,91 @@
+# motoXpress MVP — architecture
+
+The design of the **first version** of motoXpress: a website that sells motorbike parts for
+Japanese bikes in Sri Lanka. Customers browse, order, and pay **cash on delivery**. A courier
+company delivers. Admins run the catalog, stock, shipments, and the cash that couriers pay back.
+
+`../architecture/` holds the bigger, future system (card payments, recommendations).
+**This folder is what we build now.**
+
+## Read in this order
+
+| # | File | C4 kind | Answers |
+|---|---|---|---|
+| 1 | [01-business-requirements.md](01-business-requirements.md) | — | What must the shop do? How does cash on delivery work? Rules? |
+| 2 | [02-domain-model.md](02-domain-model.md) | — | Which business words exist, and which service owns each? |
+| 3 | [03-context-diagram.md](03-context-diagram.md) | Level 1 | Who uses it, which outside systems does it call? |
+| 4 | [04-container-diagram.md](04-container-diagram.md) | Level 2 | Which parts run on their own, and how do they talk? |
+| 5 | [05-components/](05-components/) | Level 3 | What is inside each service and UI? |
+| 6 | [06-dynamic/](06-dynamic/) | Dynamic | Step by step: what happens in each scenario? |
+| 7 | [07-events.md](07-events.md) | — | Which events exist, with which fields? |
+| 8 | [08-data-model.md](08-data-model.md) | — | Which tables does each database have? |
+| 9 | [09-state-diagrams.md](09-state-diagrams.md) | — | Which statuses can an order, payment, shipment have? |
+| 10 | [10-api-map.md](10-api-map.md) | — | Every URL, owner, access rule, error code |
+| 11 | [11-local-deployment.md](11-local-deployment.md) | Deployment | Where does each part run on the laptop? |
+| 12 | [12-dev-cloud.md](12-dev-cloud.md) | Deployment | Where does it run in the dev cloud? (Draft) |
+| 13 | [13-ci-cd.md](13-ci-cd.md) | — | How does code get from a pull request to the dev cloud? |
+| — | [decisions.md](decisions.md) | — | Why we chose each design |
+
+Components: [user-service](05-components/user-service.md) · [product-service](05-components/product-service.md) ·
+[order-service](05-components/order-service.md) · [payment-service](05-components/payment-service.md) ·
+[notification-service](05-components/notification-service.md) · [users-ui](05-components/users-ui.md) ·
+[admin-ui](05-components/admin-ui.md)
+
+Flows: [auth](06-dynamic/auth.md) · [browse](06-dynamic/browse.md) · [checkout](06-dynamic/checkout.md) ·
+[shipping and cash](06-dynamic/after-order.md) · [notifications](06-dynamic/notifications.md) ·
+[admin catalog](06-dynamic/admin-catalog.md) · [admin users](06-dynamic/admin-users.md)
+
+## The MVP in one table
+
+| Item | Choice |
+|---|---|
+| Services | user (built), product, order, payment, notification |
+| UIs | users-ui at `localhost`, admin-ui at `admin.localhost` |
+| Payment | Cash on delivery only |
+| Delivery | Courier companies; the admin enters tracking numbers and courier receipts by hand |
+| Order columns | `shipment_status` (NOT_SHIPPED, IN_TRANSIT, DELIVERED, RETURNED, CANCELLED) and `payment_status` (PENDING, COLLECTED, PAID, CANCELLED) |
+| Notifications | Email + push (Firebase) |
+| Environments | This setup is **dev** (laptop + dev cloud + CI/CD). Staging and prod come later from the same code. |
+
+## How to read every diagram
+
+| Shape | Meaning |
+|---|---|
+| Rounded `([ ])` | A person, or another service seen from outside |
+| Box `[ ]` | Our own service, or a part inside it |
+| Cylinder `[( )]` | A database or file store |
+| Hexagon `{{ }}` | RabbitMQ |
+| Slanted `[/ /]` | A RabbitMQ queue |
+| Double box `[[ ]]` | An outside system |
+| Solid arrow | HTTP. The caller waits. |
+| Dotted arrow | An event. The sender does not wait. |
+| **Dashed border** | **Planned** (not built yet) |
+
+In sequence diagrams the numbers are the step order. `->>` call, `-->>` answer, `--)` event.
+
+## Build order (suggested)
+
+Each step ends with something you can click and test.
+
+| Step | Build | Test it by |
+|---|---|---|
+| 1 | Update `infrastructure/local` and start the helpers | `docker compose ps` all healthy |
+| 2 | user-service: Flyway, RS256 keys, bootstrap admin, `user.*` events. Add CI. | Log in at `localhost`; see the event in the RabbitMQ UI |
+| 3 | notification-service: email | Forgot password → the email shows in Mailpit |
+| 4 | product-service + admin-ui Parts, Catalog, Stock pages | Add Honda → XR 250 → a sprocket with a photo |
+| 5 | users-ui browse and cart | Pick XR 250, see the sprocket, add it to the cart |
+| 6 | order-service checkout + My orders + admin Orders page | Place an order; stock goes down; "order received" email |
+| 7 | payment-service + admin Payments page | A Pending payment appears for the order |
+| 8 | Shipments + Courier receipts pages | Ship, deliver, enter a receipt → order shows Delivered + Paid |
+| 9 | Push notifications (Firebase) | Phone shows "your order is on its way" |
+| 10 | Local Kubernetes practice, then the dev cloud and CD | ArgoCD deploys a new commit by itself |
+
+## Open questions
+
+| Where | Question |
+|---|---|
+| [auth](06-dynamic/auth.md) | Google login behind Nginx: does Spring use the forwarded headers? |
+| [notification-service](05-components/notification-service.md) | Retry count and dead-letter queue for failed sends |
+| [12-dev-cloud.md](12-dev-cloud.md) | HTTPS tool, secrets tool, domain name, cluster size |
+| [13-ci-cd.md](13-ci-cd.md) | Registry login; how CD commits to the infrastructure repo |
+| Courier | Ask your courier: payout frequency, receipt format (PDF or Excel), fees, portal or API |
