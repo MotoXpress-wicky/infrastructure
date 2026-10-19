@@ -30,7 +30,8 @@ Facts below were checked on disk on this date. Anything not checked is marked
 - Ask before any command that changes things: `git push`, `docker compose down -v`, deleting files.
 - Never print passwords or secrets in chat.
 - Never put real secrets in a committed file. Real values go in a local `.env` file only.
-- The Co-Authored-By trailer: I asked about it and did not decide yet. **Ask me** before adding it.
+- Do **not** add a `Co-Authored-By` line to commits. I decided this on 2026-10-19: no trailer.
+  My commits must show only my name.
 
 ---
 
