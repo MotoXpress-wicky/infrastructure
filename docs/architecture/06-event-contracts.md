@@ -2,6 +2,8 @@
 
 Status: agreed 2026-09-17.
 Changed 2026-10-19: added `recommendation.generated` (decision 35).
+Changed 2026-10-19: added `order.delivered`, `order.returned`, `payment.collected`, `payment.cancelled`
+for cash on delivery with couriers (see `../mvp/07-events.md` for the MVP subset and body fields).
 
 The single source of truth for RabbitMQ events in motoXpress. Every service must
 follow this. For the "why" behind it, read `claude/rabbitmq-notes.md`.
@@ -44,9 +46,13 @@ Who declares what:
 | `order.placed` | order-service | an order is created |
 | `order.paid` | order-service | the order is fully paid |
 | `order.shipped` | order-service | the order leaves the warehouse |
+| `order.delivered` | order-service | the courier delivered the parcel |
+| `order.returned` | order-service | the courier brought the parcel back |
 | `order.cancelled` | order-service | an order is cancelled (before it ships) |
 | `order.refunded` | order-service | refund for the order is completed |
-| `payment.succeeded` | payment-service | the gateway confirms the money |
+| `payment.succeeded` | payment-service | the money is confirmed (by the gateway, or by a courier receipt for cash on delivery) |
+| `payment.collected` | payment-service | the courier collected the cash, not yet paid to us |
+| `payment.cancelled` | payment-service | no money will come (order cancelled or parcel returned) |
 | `payment.refunded` | payment-service | successfully refunded for the transaction-id|
 | `payment.failed` | payment-service | the gateway rejects the payment |
 | `product.created` | product-service | a product is added |
@@ -60,10 +66,10 @@ Who declares what:
 
 | Consumer | Queue | Binding keys |
 |---|---|---|
-| order-service | `order.payment-events` | `payment.succeeded`, `payment.failed` ,`payment.refunded`|
-| payment-service | `payment.order-events` | `order.cancelled` |
-| notification-service | `notification.email` | `user.registered`, `user.password.reset`, `user.password.changed`, `order.placed`, `order.paid`, `order.shipped`, `order.cancelled` ,`order.refunded`, `recommendation.generated`|
-| notification-service | `notification.push` | `order.paid`, `order.shipped`, `order.cancelled` ,`order.refunded`|
+| order-service | `order.payment-events` | `payment.succeeded`, `payment.failed`, `payment.refunded`, `payment.collected`, `payment.cancelled` |
+| payment-service | `payment.order-events` | `order.placed`, `order.shipped`, `order.delivered`, `order.returned`, `order.cancelled` |
+| notification-service | `notification.email` | `user.registered`, `user.password.reset`, `user.password.changed`, `order.placed`, `order.paid`, `order.shipped`, `order.delivered`, `order.returned`, `order.cancelled`, `order.refunded`, `recommendation.generated` |
+| notification-service | `notification.push` | `order.placed`, `order.paid`, `order.shipped`, `order.delivered`, `order.returned`, `order.cancelled`, `order.refunded` |
 | recommendation-service | `reco.interactions` | `order.paid` |
 | recommendation-service | `reco.catalog` | `product.*` |
 
@@ -99,9 +105,9 @@ flowchart LR
     q6[/"reco.catalog"/]
 
     ex -.->|"payment.*"| q1
-    ex -.->|"order.cancelled"| q2
+    ex -.->|"order.placed, shipped,<br/>delivered, returned, cancelled"| q2
     ex -.->|"user.*, order.*,<br/>recommendation.generated"| q3
-    ex -.->|"order.paid, shipped,<br/>cancelled, refunded"| q4
+    ex -.->|"order.*"| q4
     ex -.->|"order.paid"| q5
     ex -.->|"product.*"| q6
 
