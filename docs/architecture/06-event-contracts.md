@@ -1,6 +1,7 @@
 # motoXpress event contract (v1)
 
 Status: agreed 2026-09-17.
+Changed 2026-10-19: added `recommendation.generated` (decision 35).
 
 The single source of truth for RabbitMQ events in motoXpress. Every service must
 follow this. For the "why" behind it, read `claude/rabbitmq-notes.md`.
@@ -51,6 +52,7 @@ Who declares what:
 | `product.created` | product-service | a product is added |
 | `product.updated` | product-service | a product is edited |
 | `product.deleted` | product-service | a product is removed |
+| `recommendation.generated` | recommendation-service | the scheduled job has picked suggested items for one user |
 
 ---
 
@@ -60,10 +62,64 @@ Who declares what:
 |---|---|---|
 | order-service | `order.payment-events` | `payment.succeeded`, `payment.failed` ,`payment.refunded`|
 | payment-service | `payment.order-events` | `order.cancelled` |
-| notification-service | `notification.email` | `user.registered`, `user.password.reset`, `user.password.changed`, `order.placed`, `order.paid`, `order.shipped`, `order.cancelled` ,`order.refunded`|
+| notification-service | `notification.email` | `user.registered`, `user.password.reset`, `user.password.changed`, `order.placed`, `order.paid`, `order.shipped`, `order.cancelled` ,`order.refunded`, `recommendation.generated`|
 | notification-service | `notification.push` | `order.paid`, `order.shipped`, `order.cancelled` ,`order.refunded`|
 | recommendation-service | `reco.interactions` | `order.paid` |
 | recommendation-service | `reco.catalog` | `product.*` |
+
+---
+
+## Picture: how an event reaches a queue
+
+A publisher never sends to a queue. It sends to the exchange `app.events` with
+the event name as the routing key. The exchange copies the message into every
+queue whose binding key matches. One event can land in many queues.
+
+```mermaid
+flowchart LR
+    user["user-service"]
+    order["order-service"]
+    payment["payment-service"]
+    product["product-service"]
+    reco["recommendation-service"]
+
+    ex{{"RabbitMQ exchange<br/>app.events (topic)"}}
+
+    user -.-> ex
+    order -.-> ex
+    payment -.-> ex
+    product -.-> ex
+    reco -.-> ex
+
+    q1[/"order.payment-events"/]
+    q2[/"payment.order-events"/]
+    q3[/"notification.email"/]
+    q4[/"notification.push"/]
+    q5[/"reco.interactions"/]
+    q6[/"reco.catalog"/]
+
+    ex -.->|"payment.*"| q1
+    ex -.->|"order.cancelled"| q2
+    ex -.->|"user.*, order.*,<br/>recommendation.generated"| q3
+    ex -.->|"order.paid, shipped,<br/>cancelled, refunded"| q4
+    ex -.->|"order.paid"| q5
+    ex -.->|"product.*"| q6
+
+    q1 --> c1["order-service"]
+    q2 --> c2["payment-service"]
+    q3 --> c3["notification-service"]
+    q4 --> c3
+    q5 --> c4["recommendation-service"]
+    q6 --> c4
+```
+
+The labels on the exchange arrows are short. The exact binding keys are in the
+Subscriptions table above. For example, `notification.email` binds only the
+`order.*` events listed there, not every `order.*` event.
+
+Example: order-service publishes `order.paid`. The exchange puts one copy in
+`notification.email`, one in `notification.push`, and one in `reco.interactions`.
+Three services react. order-service does not know or care who listens.
 
 ---
 

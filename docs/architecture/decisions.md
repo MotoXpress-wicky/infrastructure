@@ -1,9 +1,11 @@
 # Architecture decisions
 
 Each row is one decision and the reason for it.
-Status: Accepted (final) or Proposed (may still change).
-Note: how services talk to each other (events vs HTTP) is not decided yet,
-so those decisions are not listed here.
+Status: Accepted (final), Proposed (may still change), Idea (later), or Open (must check first).
+
+How services talk is now decided:
+- A fact ("something happened") goes out as a RabbitMQ event. See [06-event-contracts.md](06-event-contracts.md).
+- A call that needs an answer right now uses HTTP. See [09-api-map.md](09-api-map.md).
 
 | # | Decision | Reason | Status |
 |---|---|---|---|
@@ -35,3 +37,7 @@ so those decisions are not listed here.
 | 31 | Build SQL-rule suggestions first as a fallback; add LightFM after the system runs | A weak library never blocks emails | Proposed |
 | 32 | Develop on WSL, but run recommendation-service inside Docker | Same image on laptop and in production | Proposed |
 | 33 | recommendation-service: Python 3.12, FastAPI, lightfm-next, port 8085 | Chosen stack for the Python service | Proposed |
+| 34 | Names and ports: recommendation-service on 8085 at `/api/v1/recommendation/`; payment-service on 8084 at `/api/v1/payment/`. The word "suggestion" is dropped | One name everywhere; decision 33 keeps its port; 8084 was free | Accepted |
+| 35 | Suggestion emails: a scheduled job in recommendation-service publishes `recommendation.generated`; notification-service sends the email | Same email path as every other email; both services stay domain-free | Accepted |
+| 36 | Stock: order-service reserves stock in product-service over HTTP when an order is placed, and releases it when the order is cancelled | No overselling; no contract change; smallest working version | Accepted |
+| 37 | The shopping cart lives in the browser (users-ui). order-service only receives the items at checkout | Smallest working version; no cart table or cart API yet | Proposed |

@@ -31,13 +31,20 @@ flowchart LR
 | Google | Login with Google | user-service |
 | ACS Email | Password reset, order emails, suggestion emails | notification-service |
 | OnePay | Card payments (sandbox) | payment-service |
+| Turnstile (Cloudflare) | CAPTCHA on register and forgot password | The browser shows the widget; user-service checks the token |
+
+A push-message provider will be added here once it is chosen. It is not chosen yet.
 
 ## Not outside systems
 
-PostgreSQL, RabbitMQ, and the LightFM recommendation engine are NOT outside
+PostgreSQL, Redis, RabbitMQ, and the LightFM recommendation engine are NOT outside
 systems. We build and run them, so they live inside motoXpress. A library
 (like LightFM) is code inside a service, not a separate system. These
 appear in the container diagram (level 2), not here.
+
+Mailpit is also inside. It is a fake email server we run only on the laptop,
+so local emails never reach a real inbox (decision 16). In production,
+ACS Email takes its place. Only the config changes, not the code.
 
 ## How to tell inside from outside
 
