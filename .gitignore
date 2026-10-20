@@ -1,14 +1,15 @@
-# Local secrets. Never commit real values.
+# Secrets. Never commit real values.
 .env
 **/.env
 
-# Terraform
-.terraform/
-*.tfstate
-*.tfstate.*
-*.tfvars
-!*.tfvars.example
-crash.log
+# Staging: every env file holds real values. Only the *.example templates are committed.
+environments/staging/env/*.env
+environments/staging/env/*.json
+
+# Local: the env files are committed (values that work only on your PC).
+# Only the real third-party secrets are ignored.
+environments/local/env/*.secrets.env
+environments/local/env/*.json
 
 # Editors and OS
 .idea/
