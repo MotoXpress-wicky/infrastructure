@@ -12,7 +12,7 @@ sequenceDiagram
     participant DB as user_db
 
     Y->>U: register a normal account with your email (website)
-    Y->>Y: put that email in user-service .env as the bootstrap admin email
+    Y->>Y: put that email in env/user-service.env as the bootstrap admin email
     Y->>U: restart user-service
     U->>DB: is there any user with ROLE_ADMIN?
     alt no admin yet

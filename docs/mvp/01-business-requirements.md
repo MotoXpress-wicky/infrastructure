@@ -74,6 +74,7 @@ Only step 7 proves the money arrived.
 | C11 | Get emails: welcome, password reset, password changed | Must | Partly built |
 | C12 | Get email **and push**: order placed, shipped (with tracking number), delivered, returned, cancelled | Must | Planned |
 | C13 | Allow or refuse push notifications in my browser | Must | Planned |
+| C14 | Upload a profile picture | Should | Planned |
 
 ### Admin
 

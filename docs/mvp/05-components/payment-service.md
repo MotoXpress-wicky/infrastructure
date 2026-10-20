@@ -16,7 +16,7 @@ flowchart TB
 
         paysvc["PaymentService<br/>create, collect, cancel"]
         recsvc["CourierReceiptService<br/>check and mark paid"]
-        files["FileStorage<br/>receipt PDFs"]
+        files["ObjectStorageClient<br/>courier-receipts"]
         pub["EventPublisher<br/>payment.* events"]
         repo["Repositories"]
     end
@@ -53,7 +53,7 @@ flowchart TB
 | ReferenceEventListener | Reads the five order events (table below). Skips repeated `messageId`s. |
 | PaymentService | Creates and moves payments. Publishes `payment.collected` and `payment.cancelled`. |
 | CourierReceiptService | Checks every tracking number: it must exist, belong to that courier, and be `COLLECTED`. Then, in **one** transaction, it saves the receipt and marks those payments `PAID`. After the commit it publishes one `payment.succeeded` each. |
-| FileStorage | Saves receipt PDFs and photos (M18) |
+| ObjectStorageClient | Saves receipt PDFs and photos in its own **private** bucket `courier-receipts` (M18). Admins download them through payment-service, never directly. |
 | EventPublisher | `payment.collected`, `payment.succeeded`, `payment.cancelled` |
 | Repositories | `payments`, `courier_receipts`, `processed_messages` |
 

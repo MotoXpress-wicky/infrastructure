@@ -109,7 +109,7 @@ erDiagram
     PRODUCT_IMAGES {
         bigint id PK
         bigint product_id FK
-        varchar file_name
+        varchar object_key "products/42/photo-1.jpg in bucket product-media"
         int sort_order
     }
     STOCK_RESERVATIONS {
@@ -183,7 +183,7 @@ erDiagram
         varchar tracking_number "WB55310"
         varchar status "IN_TRANSIT, DELIVERED, RETURNED"
         varchar return_reason "REFUSED, NOT_REACHABLE, WRONG_ADDRESS, OTHER"
-        varchar pickup_receipt_file "optional photo"
+        varchar pickup_receipt_key "optional photo, bucket shipment-documents"
         bigint created_by "admin user id"
         timestamp shipped_at
         timestamp delivered_at
@@ -233,7 +233,7 @@ erDiagram
         decimal collected_total "sum of its payments"
         decimal fees "collected minus received"
         decimal amount_received
-        varchar file_name "PDF or photo, required"
+        varchar file_key "PDF or photo in bucket courier-receipts, required"
         bigint created_by "admin user id"
         timestamp created_at
     }
@@ -277,7 +277,7 @@ erDiagram
 
 ## Databases on the PostgreSQL server
 
-| Database | DB user | In `01-create-databases.sh` today? |
+| Database | DB user | In `01-create-databases.sql` today? |
 |---|---|---|
 | `user_db` | `user_service` | Yes |
 | `product_db` | `product_service` | Yes |

@@ -1,74 +1,67 @@
-# Dev cloud (C4 deployment diagram) — **Draft**
+# Environments
 
-The second half of the **development environment**: the same images, running on Azure,
-deployed by ArgoCD. Staging and production are added later the same way, with their own
-overlay, Terraform folder, databases and secrets (M11).
+Each environment is one folder in `infrastructure/environments/`, with a complete
+`docker-compose.yml` (helpers + every service) and its own Nginx config, Postgres init and an `env/` folder (one env file per container).
 
-Status: **Draft.** Decision 14 says: practise Kubernetes on a local cluster (kind or minikube)
-first, because a cloud cluster costs money every hour. Build this after the MVP runs on the laptop.
+| Environment | Folder | Where | Gets a new image tag when | Status |
+|---|---|---|---|---|
+| **local** | `environments/local/` | Your PC | A service is pushed to `main` (automatic) | Active |
+| **staging** | `environments/staging/` | A VPS | You press "Run workflow" (promote) in that service's repo | Later: no server yet |
+| production | `environments/production/` | A VPS | Promote from staging, with approval | Later |
+
+Every environment runs the **same images**. Only the tags and the secrets differ (M11).
+
+## local vs staging
+
+| | local | staging |
+|---|---|---|
+| Nginx | Container first, IntelliJ fallback | Containers only |
+| Host names | `localhost`, `admin.localhost` | the staging domain (TODO) |
+| Ports on the machine | Nginx 80; helper ports on `127.0.0.1` for IntelliJ | Only Nginx |
+| Object storage | `object-storage` container (SeaweedFS) creates its own buckets; public files at `/media/products/`, `/media/avatars/` | the same |
+| HTTPS | No | TODO: Nginx + Certbot when the VPS exists |
+| Email | Mailpit | Mailpit (testers never email real people) |
+| Started by | You: `docker compose up -d` | TODO: a deploy step on the VPS |
+
+## Staging later: one VPS
 
 ```mermaid
 flowchart TB
-    browser([Browser])
-    git[["GitHub<br/>infrastructure repo"]]
+    browser([Testers])
+    ghcr[["GitHub Container Registry"]]
+    repo[["infrastructure repo<br/>environments/staging"]]
 
-    subgraph azure ["Azure: built by terraform/environments/dev"]
-        subgraph aks [Kubernetes cluster]
-            ingress["Ingress controller<br/>dev host names, HTTPS"]
-            argocd["ArgoCD"]
-            ui["users-ui, admin-ui<br/>static files in Nginx images"]
-            svcs["user, product, order,<br/>notification, payment"]
-            mq{{"RabbitMQ"}}
-            redis[("Redis")]
-            mailpit[["Mailpit"]]
-        end
-        pg[("Managed PostgreSQL<br/>one server, 5 databases")]
-        blob[("Blob storage<br/>photos, PDFs")]
-        acr[("Container registry<br/>images")]
+    subgraph vps ["Staging VPS: environments/staging/docker-compose.yml"]
+        nginx["Nginx<br/>staging domain"]
+        apps["all services and UIs"]
+        helpers[("PostgreSQL, Redis,<br/>RabbitMQ, Mailpit")]
     end
 
-    fcm[["Firebase"]]
-    google[["Google, Turnstile"]]
+    backup[("Backups<br/>outside the VPS")]
 
-    browser --> ingress
-    ingress --> ui
-    ingress --> svcs
-    svcs --> pg
-    svcs --> blob
-    svcs -.-> mq
-    svcs --> redis
-    svcs --> mailpit
-    svcs --> fcm
-    svcs --> google
-    argocd -->|watches| git
-    argocd -->|applies| svcs
-    aks -->|pulls images| acr
+    browser --> nginx
+    nginx --> apps
+    apps --> helpers
+    repo -->|"git pull"| vps
+    vps -->|"docker compose pull"| ghcr
+    helpers -->|"nightly copy"| backup
 ```
 
-## Parts and choices
+To do when the VPS exists:
 
-| Part | Proposal | Status |
-|---|---|---|
-| Kubernetes cluster | Azure's managed Kubernetes service, smallest size | Draft |
-| Ingress | An Ingress controller, the cloud version of our Nginx. Same routes as the laptop. | Draft |
-| HTTPS certificates | TODO: choose the tool | Open |
-| Host names | Example: `dev.<domain>` and `admin.dev.<domain>` | Open (no domain yet) |
-| PostgreSQL | Azure's managed PostgreSQL; one server with 5 databases and 5 DB users (decision 6) | Draft |
-| RabbitMQ, Redis, Mailpit | Run inside the cluster: cheap, and no real emails in dev | Draft |
-| Files | Azure blob storage, behind the same `FileStorage` interface (M18) | Draft |
-| Images | Azure container registry | Draft |
-| Secrets | TODO: choose how secrets reach the cluster. Never in git. | Open |
-| UIs | `npm run build`, then the static files are served by a small Nginx image | Draft |
+1. Install Docker; create a `deploy` user; firewall: only ports 22, 80, 443.
+2. Clone the infrastructure repo; create the `env/*.env` files from their `*.env.example` templates.
+3. Point DNS at the VPS; put the real domain in `env/user-service.env` and `nginx/default.conf`; add HTTPS.
+4. Start: `cd environments/staging && docker compose pull && docker compose up -d`.
+5. Automate: a job in the infrastructure repo that SSHes in and runs step 4 after each tag change.
+6. Nightly backup of the databases and file volumes, copied off the server.
 
-## Folders in this repo
+Size estimate, check with your provider: 4 GB RAM minimum, 8 GB comfortable.
 
-| Folder | Holds |
-|---|---|
-| `terraform/modules/` | Reusable pieces (cluster, database, storage, registry) |
-| `terraform/environments/dev/` | The dev cloud. Later also `staging/`, `prod/`. |
-| `k8s/platform/` | Shared tools in the cluster: ingress, RabbitMQ, Redis, Mailpit |
-| `k8s/apps/<service>/base/` | Deployment, service, health checks; the same for every environment |
-| `k8s/apps/<service>/overlays/dev/` | Dev only: image tag, host names, replica count, config |
-| `k8s/argocd/` | ArgoCD applications that point at the overlays |
+## Promotion
 
-MVP services in `k8s/apps/`: user, product, order, notification, payment, users-ui, admin-ui.
+```
+push to main ──► environments/local tag ──(Run workflow: promote)──► environments/staging tag ──► production (later)
+```
+
+Rollback = put the previous tag back (run the promote workflow with the older commit id).

@@ -1,5 +1,10 @@
 # motoXpress — session handoff
 
+> **Out of date (design parts).** Since this was written, the MVP design was finished in
+> [mvp/README.md](mvp/README.md): cash on delivery, payment-service on 8084, no recommendation-service,
+> admin site at `admin.localhost`, servers on a VPS with Docker Compose (no Kubernetes, no Terraform).
+> Read the MVP docs first. Sections 1 (how to teach me) and the git rules below still apply.
+
 Written on 2026-10-19. Read this file first. It tells a new Claude session
 what the project is, what is done, what is not done, and what to do next.
 

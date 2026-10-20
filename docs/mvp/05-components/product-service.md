@@ -18,12 +18,12 @@ flowchart TB
         catsvc["CatalogService<br/>brands, models, categories"]
         prodsvc["ProductService<br/>parts, fitment, search"]
         stock["StockService<br/>reserve, release, adjust"]
-        files["FileStorage<br/>part photos"]
+        files["ObjectStorageClient<br/>AWS S3 client"]
         repo["Repositories"]
     end
 
     db[("product_db")]
-    folder[("file storage")]
+    folder[("object storage<br/>bucket product-media")]
 
     req --> jwtf
     jwtf --> catc
@@ -61,7 +61,7 @@ flowchart TB
 | CatalogService | Example rule: cannot hide a category that active parts use |
 | ProductService | Example rule: part number must be unique. Search by number, name, category, bike model. |
 | StockService | Reserve for an order, release on cancel **or return**, admin adjustments. Every change is written to `stock_movements`. Locks the part row while changing stock. |
-| FileStorage | Interface for files (M18): a folder on the laptop, cloud storage in the dev cloud |
+| ObjectStorageClient | Puts and deletes files in its own bucket `product-media` (public read) with the AWS SDK S3 client (M18). Saves only the object key. Address and keys come from `env/product-service.env`. |
 | Repositories | `brands`, `bike_models`, `categories`, `products`, `product_fitments`, `product_images`, `stock_reservations`, `stock_movements` |
 
 ## Stock in one picture

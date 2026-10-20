@@ -79,7 +79,7 @@ The two templates in `user-service/src/main/resources/templates/emails/` move he
 
 ## Settings
 
-SMTP host and port, Firebase service-account key (secret, `.env` only), template map, queue names.
+SMTP host and port, Firebase service-account key (a secret file, `firebase.json`, ignored by git), template map, queue names.
 Check the Firebase documentation for the exact Admin SDK Maven coordinates; do not guess them.
 
 Tables: [08-data-model.md](../08-data-model.md#notification_db). Endpoints: [10-api-map.md](../10-api-map.md#notification-service-8083).

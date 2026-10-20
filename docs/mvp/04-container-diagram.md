@@ -24,10 +24,11 @@ flowchart TB
     payment["payment-service<br/>8084 · cash, receipts"]
 
     userdb[("user_db + Redis")]
-    productdb[("product_db + files")]
-    orderdb[("order_db + files")]
+    productdb[("product_db")]
+    orderdb[("order_db")]
     notifdb[("notification_db")]
-    paymentdb[("payment_db + files")]
+    paymentdb[("payment_db")]
+    storage[("Object storage<br/>SeaweedFS, S3 API")]
 
     broker{{"RabbitMQ<br/>app.events"}}
 
@@ -45,12 +46,16 @@ flowchart TB
     nginx -->|"/api/v1/order"| order
     nginx -->|"/api/v1/notification"| notif
     nginx -->|"/api/v1/payment"| payment
+    nginx -->|"/media: public photos"| storage
 
     user --> userdb
     product --> productdb
     order --> orderdb
     notif --> notifdb
     payment --> paymentdb
+    product -->|"product-media (public)"| storage
+    order -->|"shipment-documents (private)"| storage
+    payment -->|"courier-receipts (private)"| storage
 
     order -->|"reserve, release stock"| product
     user --> google
@@ -82,6 +87,7 @@ host name. So each site is one origin: no CORS, and the login cookie goes along 
 | payment-service | Cash-on-delivery payments, **courier receipts** | payment_db; receipt PDFs | Planned |
 | notification-service | Email and push from events; saves browsers that allowed push | notification_db | Planned |
 | RabbitMQ | Carries events | — | In docker-compose |
+| Object storage | S3-compatible store (SeaweedFS) for photos and PDFs; one bucket per purpose, owned by one service | `object-storage-data` volume | In docker-compose |
 
 ## Who calls whom
 
@@ -103,4 +109,4 @@ host name. So each site is one origin: no CORS, and the login cookie goes along 
 | Skip duplicate events | Every event has a `messageId`; listeners remember handled ids |
 | Own database only | No service reads another service's tables |
 | Health check | A health URL per service for Docker and Kubernetes. TODO: choose the tool (Spring Boot Actuator is usual for Java). |
-| Files | Through a `FileStorage` interface (M18) |
+| Files | In S3-compatible object storage with the AWS S3 client; the database keeps only the key (M18) |

@@ -1,62 +1,132 @@
 # CI/CD
 
 **CI** (continuous integration) = every change is built and tested automatically.
-**CD** (continuous delivery) = every good change on `main` is deployed automatically.
-Here CD uses **GitOps**: git holds the truth about what runs, and ArgoCD makes the cluster match it (decision 10).
+**CD** (continuous delivery) = every good change on `main` becomes an image, and its tag is written
+into an environment's `docker-compose.yml` in the infrastructure repo (M28).
 
 ```mermaid
 flowchart LR
     dev([You])
     subgraph svcrepo [A service repo, e.g. order-service]
-        pr["Pull request"]
+        push["push or pull request"]
         main["main branch"]
+        ci["ci.yml<br/>build, test"]
+        cd["cd.yml<br/>calls the shared workflow"]
     end
-    ci["GitHub Actions: CI<br/>build, test, lint"]
-    cd["GitHub Actions: CD<br/>build image, push"]
-    acr[("Container registry")]
-    infra[["infrastructure repo<br/>k8s overlays/dev"]]
-    argocd["ArgoCD<br/>in the dev cluster"]
-    cluster["Dev cluster"]
+    subgraph infra [infrastructure repo]
+        shared["release-service.yml<br/>shared workflow"]
+        local["environments/local/<br/>docker-compose.yml"]
+        staging["environments/staging/<br/>docker-compose.yml"]
+    end
+    ghcr[("GitHub Container Registry")]
 
-    dev --> pr
-    pr --> ci
-    ci -->|green| main
+    dev --> push
+    push --> ci
+    ci -->|"green, merged"| main
     main --> cd
-    cd -->|"image tagged with commit id"| acr
-    cd -->|"commit: new image tag"| infra
-    argocd -->|watches| infra
-    argocd -->|deploys| cluster
-    cluster -->|pulls image| acr
+    cd --> shared
+    shared -->|"image tagged with commit id"| ghcr
+    shared -->|"push to main: write tag"| local
+    shared -->|"Run workflow: write tag"| staging
 ```
 
-## The steps
+## What happens
 
-| # | Where | What happens |
+| # | Trigger | Where | What |
+|---|---|---|---|
+| 1 | Any push or pull request | service `ci.yml` | Java: `./mvnw verify`. UI: `npm ci`, lint, `tsc`, build. Red blocks the merge. |
+| 2 | Push to `main` | service `cd.yml` → `release-service.yml` | Build the image `ghcr.io/motoxpress-wicky/<service>:<commit id>`, push it |
+| 3 | (same run) | `release-service.yml` | Replace that service's `image:` line in `environments/local/docker-compose.yml`, commit to the infrastructure repo |
+| 4 | That commit | infrastructure `check-compose.yml` | Checks that both compose files are still valid |
+| 5 | You | your PC | `git pull`, `docker compose pull && docker compose up -d` in `environments/local` |
+| 6 | You press **Run workflow** on the service's CD | `release-service.yml` with `build: false` | Write an existing tag into `environments/staging/docker-compose.yml` (no new build: the image that worked locally is reused) |
+
+Only `main` builds images (M32). Branches only run CI.
+
+## Files
+
+| Repo | File | Status |
 |---|---|---|
-| 1 | Service repo | You open a pull request |
-| 2 | CI workflow | Java: `./mvnw verify` (compile + tests). UI: `npm ci`, lint, `tsc`, build. A red result blocks the merge. |
-| 3 | Service repo | You merge to `main` |
-| 4 | CD workflow | Build the Docker image, tag it with the **git commit id** (never `latest`), push it to the registry |
-| 5 | CD workflow | Change the image tag in `infrastructure/k8s/apps/<service>/overlays/dev/` and commit |
-| 6 | ArgoCD | Sees the new commit and updates the dev cluster |
-| 7 | Later: staging, prod | Copy the **same** tag into the staging or prod overlay. The image is built once and promoted (M11). |
+| infrastructure | `.github/workflows/release-service.yml` (shared) | Written |
+| infrastructure | `.github/workflows/check-compose.yml` | Written |
+| each service and UI | `Dockerfile` | To write when you build the service |
+| each service and UI | `.github/workflows/ci.yml` | To write (Java or Node version) |
+| each service and UI | `.github/workflows/cd.yml` | To write: the file below, with the service name changed |
 
-## Workflows per repo
+## `cd.yml` for a service repo
 
-| Repo | CI | CD |
+The same file in every repo. Change only `service:` (it must match the compose service name).
+
+```yaml
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:            # the "Run workflow" button = promote to staging
+    inputs:
+      tag:
+        description: "Commit id to put on staging (empty = the newest commit on main)"
+        required: false
+
+jobs:
+  local:
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    uses: MotoXpress-wicky/infrastructure/.github/workflows/release-service.yml@main
+    with:
+      service: order-service
+      environment: local
+      build: true
+    secrets:
+      INFRA_REPO_TOKEN: ${{ secrets.INFRA_REPO_TOKEN }}
+
+  staging:
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      packages: write          # GitHub checks this even though the build job is skipped here
+    uses: MotoXpress-wicky/infrastructure/.github/workflows/release-service.yml@main
+    with:
+      service: order-service
+      environment: staging
+      build: false
+      tag: ${{ inputs.tag || github.sha }}
+    secrets:
+      INFRA_REPO_TOKEN: ${{ secrets.INFRA_REPO_TOKEN }}
+```
+
+| Repo | `service:` |
+|---|---|
+| user-service | `user-service` |
+| product-service | `product-service` |
+| order-service | `order-service` |
+| notification-service | `notification-service` |
+| payment-service | `payment-service` |
+| users-ui | `users-ui` |
+| admin-ui | `admin-ui` |
+
+## Secrets
+
+| Secret | Where | Used for |
 |---|---|---|
-| user, product, order, notification, payment service | build + test | image + update dev overlay |
-| users-ui, admin-ui | lint + type check + build | image + update dev overlay |
-| infrastructure | check that every overlay builds; Terraform format, validate, plan | ArgoCD applies `k8s/` itself; Terraform apply stays manual at first |
+| `GITHUB_TOKEN` | Built into every workflow | Push images to GHCR |
+| `INFRA_REPO_TOKEN` | Each service repo (Settings → Secrets → Actions) | Commit tags into the infrastructure repo. Give it write access to **only** that repo. |
+| App passwords and keys (staging) | `environments/staging/env/*.env` on the VPS | Never in GitHub, never in git |
+| Local passwords and keys | `environments/local/env/*.env` | In git on purpose: they work only on your PC (M37) |
+| Real third-party secrets (local) | `environments/local/env/user-service.secrets.env`, `env/firebase.json` | Ignored by git |
+
+Open: which kind of `INFRA_REPO_TOKEN` (fine-grained personal access token, or a GitHub App).
+Check the GitHub docs on "fine-grained personal access tokens" when you add the first `cd.yml`.
 
 ## Rules
 
 | Rule | Why |
 |---|---|
-| Secrets live in GitHub Actions secrets and the cluster's secret store, never in a workflow file | The repos are public |
-| One image per commit, tagged with the commit id | You always know what code runs |
-| Tests must pass before merge | `main` is always deployable |
-| Database changes only through Flyway | The same SQL runs on the laptop, in dev, and later in prod |
-
-Open: which registry login the workflows use, and how the CD job is allowed to commit to the
-infrastructure repo. Decide when you build the first pipeline.
+| One image per commit, tagged with the commit id (never `latest`) | You always know which code runs |
+| Tests pass before merge | `main` is always releasable |
+| Never edit image tags by hand | The pipelines own them; git history shows every release |
+| Database changes only through Flyway | The same SQL runs in every environment |
+| No secret in any workflow file | The repos are public |

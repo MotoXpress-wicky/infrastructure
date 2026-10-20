@@ -21,9 +21,9 @@ company delivers. Admins run the catalog, stock, shipments, and the cash that co
 | 8 | [08-data-model.md](08-data-model.md) | — | Which tables does each database have? |
 | 9 | [09-state-diagrams.md](09-state-diagrams.md) | — | Which statuses can an order, payment, shipment have? |
 | 10 | [10-api-map.md](10-api-map.md) | — | Every URL, owner, access rule, error code |
-| 11 | [11-local-deployment.md](11-local-deployment.md) | Deployment | Where does each part run on the laptop? |
-| 12 | [12-dev-cloud.md](12-dev-cloud.md) | Deployment | Where does it run in the dev cloud? (Draft) |
-| 13 | [13-ci-cd.md](13-ci-cd.md) | — | How does code get from a pull request to the dev cloud? |
+| 11 | [11-local-deployment.md](11-local-deployment.md) | Deployment | Local environment: the whole system on your PC, and how to debug one service in IntelliJ |
+| 12 | [12-dev-cloud.md](12-dev-cloud.md) | Deployment | All environments: local now, staging (VPS) later |
+| 13 | [13-ci-cd.md](13-ci-cd.md) | — | How does code get from a pull request to an image and a tag? |
 | — | [decisions.md](decisions.md) | — | Why we chose each design |
 
 Components: [user-service](05-components/user-service.md) · [product-service](05-components/product-service.md) ·
@@ -45,7 +45,8 @@ Flows: [auth](06-dynamic/auth.md) · [browse](06-dynamic/browse.md) · [checkout
 | Delivery | Courier companies; the admin enters tracking numbers and courier receipts by hand |
 | Order columns | `shipment_status` (NOT_SHIPPED, IN_TRANSIT, DELIVERED, RETURNED, CANCELLED) and `payment_status` (PENDING, COLLECTED, PAID, CANCELLED) |
 | Notifications | Email + push (Firebase) |
-| Environments | This setup is **dev** (laptop + dev cloud + CI/CD). Staging and prod come later from the same code. |
+| Running it | Docker Compose everywhere; images in GitHub Container Registry, built by CI from `main` |
+| Environments | `infrastructure/environments/local` (your PC) and `environments/staging` (a VPS, later). Each has a complete `docker-compose.yml`; pipelines write the image tags. |
 
 ## How to read every diagram
 
@@ -78,7 +79,7 @@ Each step ends with something you can click and test.
 | 7 | payment-service + admin Payments page | A Pending payment appears for the order |
 | 8 | Shipments + Courier receipts pages | Ship, deliver, enter a receipt → order shows Delivered + Paid |
 | 9 | Push notifications (Firebase) | Phone shows "your order is on its way" |
-| 10 | Local Kubernetes practice, then the dev cloud and CD | ArgoCD deploys a new commit by itself |
+| 10 | A `Dockerfile`, `ci.yml` and `cd.yml` in every service repo (13-ci-cd.md) | After a merge: `git pull` + `docker compose pull && docker compose up -d` runs the new image |
 
 ## Open questions
 
@@ -86,6 +87,6 @@ Each step ends with something you can click and test.
 |---|---|
 | [auth](06-dynamic/auth.md) | Google login behind Nginx: does Spring use the forwarded headers? |
 | [notification-service](05-components/notification-service.md) | Retry count and dead-letter queue for failed sends |
-| [12-dev-cloud.md](12-dev-cloud.md) | HTTPS tool, secrets tool, domain name, cluster size |
-| [13-ci-cd.md](13-ci-cd.md) | Registry login; how CD commits to the infrastructure repo |
+| [12-dev-cloud.md](12-dev-cloud.md) | For staging later: domain name, VPS provider and size, off-site backup tool |
+| [13-ci-cd.md](13-ci-cd.md) | Which token type CD uses to commit to the infrastructure repo |
 | Courier | Ask your courier: payout frequency, receipt format (PDF or Excel), fees, portal or API |

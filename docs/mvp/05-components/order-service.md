@@ -20,7 +20,7 @@ flowchart TB
         prodcli["ProductClient<br/>HTTP: reserve, release"]
         listener["PaymentEventListener<br/>copies payment status"]
         pub["EventPublisher<br/>order.* events"]
-        files["FileStorage<br/>pickup receipt photos"]
+        files["ObjectStorageClient<br/>shipment-documents"]
         repo["Repositories"]
     end
 
@@ -75,7 +75,7 @@ flowchart TB
 | ProductClient | HTTP calls to product-service internal endpoints, with the trace id |
 | PaymentEventListener | Reads `payment.collected`, `payment.succeeded`, `payment.cancelled` and updates the order's `payment_status` copy. Skips repeated `messageId`s. |
 | EventPublisher | Publishes `order.*` events after the commit (M19) |
-| FileStorage | Saves the optional photo of the courier's pickup receipt (M18) |
+| ObjectStorageClient | Saves the optional pickup-receipt photo in its own **private** bucket `shipment-documents` (M18) |
 | Repositories | `orders`, `order_items`, `shipments`, `processed_messages` |
 
 The order never changes `payment_status` on its own. Only `payment.*` events change it (M3).
@@ -83,6 +83,6 @@ The order never changes `payment_status` on its own. Only `payment.*` events cha
 ## Settings in `application.yaml`
 
 Delivery fee, currency `LKR`, order number prefix `MX-`, list of couriers, overdue-cash days (14),
-product-service base URL and timeouts, RabbitMQ queue, public key location, file folder.
+product-service base URL and timeouts, RabbitMQ queue, public key location, object storage settings (S3 address, its own keys, bucket `shipment-documents`).
 
 Tables: [08-data-model.md](../08-data-model.md#order_db). Endpoints: [10-api-map.md](../10-api-map.md#order-service-8082).

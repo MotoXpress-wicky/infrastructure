@@ -27,7 +27,7 @@ sequenceDiagram
     autonumber
     actor A as Admin
     participant P as product-service
-    participant S as FileStorage (file folder)
+    participant S as Object storage (bucket product-media)
 
     A->>P: POST /api/v1/product/admin/products (123HG, Sprocket, category, price, start stock, bike model ids)
     P->>P: part number unique? category and models active? price above 0?
@@ -36,8 +36,9 @@ sequenceDiagram
     loop each photo, up to 5
         A->>P: POST /api/v1/product/admin/products/{id}/photos (file)
         P->>P: image type? size under the limit?
-        P->>S: save the file
-        P-->>A: 201 photo URL
+        P->>S: PUT products/{id}/photo-1.jpg (S3 API)
+        P->>P: save only the key
+        P-->>A: 201 photo URL (MEDIA_BASE_URL + key)
     end
 ```
 

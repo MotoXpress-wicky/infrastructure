@@ -45,11 +45,12 @@ sequenceDiagram
     autonumber
     participant B as Browser
     participant P as product-service
+    participant S as Object storage (bucket product-media)
 
     B->>P: GET /api/v1/product/products/{id}
-    P-->>B: number, name, category, part brand, condition, price, stock, fitting bikes, photo URLs
-    B->>P: GET /api/v1/product/photos/{fileName} (one per photo)
-    P-->>B: image bytes
+    P-->>B: number, name, category, part brand, condition, price, stock, fitting bikes, photo URLs (MEDIA_BASE_URL + key)
+    B->>S: GET /media/products/42/sprocket-1.jpg (one per photo, via Nginx)
+    S-->>B: image
 ```
 
 A hidden part answers `404`. Old orders still show it from their own copy (BR3, BR7).

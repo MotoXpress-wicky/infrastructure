@@ -13,8 +13,9 @@ calls it; Nginx never routes it).
 | `http://localhost` | 80 | Customer site + API (Nginx) |
 | `http://admin.localhost` | 80 | Admin site + API (Nginx) |
 | users-ui / admin-ui (Vite) | 3000 / 3001 | Reached through Nginx |
-| user / product / order / notification / payment service | 8080 / 8081 / 8082 / 8083 / 8084 | Reached through Nginx |
-| PostgreSQL / Redis / RabbitMQ / RabbitMQ UI | 5432 / 6379 / 5672 / 15672 | Helpers |
+| user / product / order / notification / payment service | 8080 / 8081 / 8082 / 8083 / 8084 | Inside Docker only, reached through Nginx |
+| PostgreSQL / Redis / RabbitMQ / object storage (S3) / Mailpit SMTP | 5432 / 6379 / 5672 / 8333 / 1025 | Helpers, on 127.0.0.1 for IntelliJ |
+| RabbitMQ UI / Mailpit inbox | http://rabbitmq.localhost / http://mail.localhost | Through Nginx |
 | Mailpit inbox | TODO: check its port on the Mailpit docs | Helper |
 
 ## Nginx routes (same API routes on both hosts)
@@ -26,8 +27,11 @@ calls it; Nginx never routes it).
 | `/api/v1/order/` | order-service 8082 |
 | `/api/v1/notification/` | notification-service 8083 |
 | `/api/v1/payment/` | payment-service 8084 |
+| `/media/products/` | object storage, bucket `product-media` (read-only) |
+| `/media/avatars/` | object storage, bucket `user-avatars` (read-only) |
 | `/` on `localhost` | users-ui 3000 |
 | `/` on `admin.localhost` | admin-ui 3001 |
+| `rabbitmq.localhost`, `mail.localhost` (local only) | RabbitMQ UI, Mailpit inbox |
 
 ## user-service (8080)
 
@@ -59,7 +63,6 @@ calls it; Nginx never routes it).
 | GET | `/api/v1/product/categories` | Public | Categories |
 | GET | `/api/v1/product/products` | Public | Search: `q`, `bikeModelId`, `categoryId`, `page`, `size` |
 | GET | `/api/v1/product/products/{id}` | Public | One part, fitment, photo URLs |
-| GET | `/api/v1/product/photos/{fileName}` | Public | Photo file |
 | POST | `/api/v1/product/admin/brands` | Admin | Add brand |
 | PATCH | `/api/v1/product/admin/brands/{id}` | Admin | Rename, hide |
 | POST | `/api/v1/product/admin/brands/{brandId}/models` | Admin | Add bike model |
