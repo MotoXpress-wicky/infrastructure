@@ -1,7 +1,8 @@
 # motoXpress — context for Claude
 
-**First, read `docs/session-handoff.md`.** It says what is done, what is not done,
-and what to do next. Do not change anything until you have read it and told me your plan.
+**First, read `docs/mvp/README.md`.** It is the design of what we build now.
+`docs/session-handoff.md` is an older snapshot (2026-10-19); the MVP docs replace its design parts.
+Do not change anything until you have read the MVP docs and told me your plan.
 
 This file is a copy of my root `CLAUDE.md`. The root folder is not a git repo,
 so a cloud session cannot see it. Keep the two files the same.
@@ -25,7 +26,9 @@ so a cloud session cannot see it. Keep the two files the same.
 - Do not commit or push unless I ask. I usually commit myself.
 - Do not add a `Co-Authored-By` line to commits. My commits must show only my name.
 - Never print passwords or secrets in chat.
-- Never put real secrets in a committed file. Real values go in a local `.env` file only.
+- Never put real secrets in a committed file. Staging values go only in `environments/staging/env/*.env` (ignored by git).
+- Local env files (`environments/local/env/*.env`) are committed with local-only values. The real
+  Google, Gmail and Firebase secrets go only in `env/user-service.secrets.env` and `env/firebase.json` (ignored).
 - The repos on GitHub are public.
 
 ## Facts and code
@@ -37,13 +40,17 @@ so a cloud session cannot see it. Keep the two files the same.
 ## Folder layout
 motoxpress/
   infrastructure/  user-service/  product-service/  order-service/
-  notification-service/  recommendation-service/  users-ui/  admin-ui/
+  notification-service/  payment-service/  users-ui/  admin-ui/
 Each is a separate git repo. The parent folder is not a repo.
 A cloud session only sees the repo it is attached to.
+recommendation-service is not part of the MVP.
 
 ## Stack
 Java 21, Spring Boot, Maven, PostgreSQL, Flyway, Redis, RabbitMQ, Docker, Nginx,
-GitHub Actions, Kubernetes + ArgoCD + Kustomize, Terraform. UIs: Vite + React + TypeScript.
+GitHub Actions. UIs: Vite + React + TypeScript.
+Environments: Docker Compose everywhere. infrastructure/environments/local (my PC) and
+infrastructure/environments/staging (a VPS later). Images in GitHub Container Registry, built by CI
+from main. Kubernetes is a "maybe later", not part of the MVP.
 
 ## Project rules
 - One service = one job = one database. A service never reads another service's tables.
@@ -54,24 +61,32 @@ GitHub Actions, Kubernetes + ArgoCD + Kustomize, Terraform. UIs: Vite + React + 
 - Production grade = input validation, one shared error JSON, logs with trace id, tests,
   profiles (dev/docker/prod), health checks, no secrets in git.
 - No admin-service. Admins are users with ROLE_ADMIN in user-service.
+- Cash on delivery only in the MVP. Couriers deliver; admins enter tracking numbers and courier receipts.
 
 ## Local development
-- infrastructure/local/docker-compose.yml starts ONLY helpers:
-  PostgreSQL, Redis, RabbitMQ, Nginx. It never starts the services.
-- I start Java services in IntelliJ and UIs with "npm run dev" myself.
-- Nginx reaches them through host.docker.internal.
+- infrastructure/environments/local/docker-compose.yml holds ALL helpers and ALL services.
+  `docker compose up -d` starts everything from the CI-built images.
+- Each service's image tag in that file is written by its pipeline (shared workflow
+  infrastructure/.github/workflows/release-service.yml). Never edit the tags by hand.
+- To work on one service: `docker compose stop <service>`, run it in IntelliJ (or `npm run dev`).
+  Nginx tries the container first and falls back to host.docker.internal by itself.
+- environments/staging/ is the same for the staging VPS (later); its tags come from a
+  "promote to staging" run of each service's pipeline.
 
-| Thing | Port |
+| Thing | Address / port |
 |---|---|
-| Nginx customer site / admin site | 80 / 8000 |
-| users-ui / admin-ui | 3000 / 3001 |
-| user / product / order / notification / suggestion service | 8080 / 8081 / 8082 / 8083 / 8084 |
-| PostgreSQL / Redis / RabbitMQ / RabbitMQ UI | 5432 / 6379 / 5672 / 15672 |
+| Customer site / admin site (Nginx) | http://localhost / http://admin.localhost (both port 80) |
+| users-ui / admin-ui (Vite) | 3000 / 3001 |
+| user / product / order / notification / payment service | 8080 / 8081 / 8082 / 8083 / 8084 (inside Docker only; IntelliJ copies use the same ports) |
+| PostgreSQL / Redis / RabbitMQ / object storage S3 / Mailpit SMTP | 5432 / 6379 / 5672 / 8333 / 1025 (on 127.0.0.1, for IntelliJ) |
+| RabbitMQ UI / Mailpit inbox | http://rabbitmq.localhost / http://mail.localhost |
 
-The names "suggestion" and "recommendation" are not settled. See
-`docs/session-handoff.md`, section 6, problem 1.
+Object storage: SeaweedFS container `object-storage`, S3 API. It creates its own buckets on start
+(environments/<env>/object-storage/buckets.conf) and one S3 user per service (users.conf).
+Buckets: product-media and user-avatars (public, /media/products/ and /media/avatars/),
+courier-receipts and shipment-documents (private). Store only object keys in databases.
 
 ## Where to read more
-- Handoff and next steps: `docs/session-handoff.md`
-- Decisions: `docs/architecture/decisions.md`
-- Event rules: `docs/architecture/06-event-contracts.md`
+- MVP design: `docs/mvp/README.md`
+- MVP decisions: `docs/mvp/decisions.md`
+- Event rules: `docs/architecture/06-event-contracts.md` (MVP subset: `docs/mvp/07-events.md`)
