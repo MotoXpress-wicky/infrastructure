@@ -1,2 +1,0 @@
-# The Postgres init script fails with Windows line endings.
-*.sh text eol=lf
