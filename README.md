@@ -121,3 +121,16 @@ You need it once after the database list changes, because the init SQL runs only
 | A photo URL answers 403 or 404 | The key is wrong, or the file is in a private bucket (never public). Check `object-storage/buckets.conf`. |
 | "port is already allocated" | Another program uses that port. Stop it. |
 | `admin.localhost` not found in a terminal tool | Browsers resolve `*.localhost` by themselves. For other tools, add the name to the hosts file. |
+| `Detect hardcoded secrets ... Failed` when you commit | gitleaks found a secret in your staged changes. Remove it (move it to an ignored env file), then commit again. |
+
+## 10. Secret check before every commit (all repos)
+
+Every motoXpress repo has a `.pre-commit-config.yaml`. It runs **gitleaks** (a secret scanner)
+through **pre-commit** (a tool that runs checks before `git commit`). A commit with a secret is blocked.
+
+1. Install pre-commit once per PC: `pip install pre-commit`
+2. Turn it on once per clone, inside each repo: `pre-commit install`
+3. Check: `pre-commit run`. You should see `Detect hardcoded secrets....Passed`.
+
+The first run builds gitleaks with Go (pre-commit downloads Go if it is missing), so it takes a minute.
+The hook checks only new staged changes, not old history. `git commit --no-verify` skips it: never do that.
