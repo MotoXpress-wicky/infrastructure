@@ -1,0 +1,156 @@
+name: motoxpress-staging
+
+# Staging server (a VPS, later). Only Nginx has a port. TODO: HTTPS (Nginx + Certbot) when the VPS exists.
+# Service image tags are written by CI. Create env files first: for f in env/*.example; do cp -n "$f" "${f%.example}"; done
+
+networks:
+  default:
+    name: motoxpress-staging-network
+
+services:
+
+  # =====================================================================
+  # Helpers
+  # =====================================================================
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file: ./env/postgres.env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    env_file: ./env/redis.env
+    command: ["sh", "-c", "exec docker-entrypoint.sh redis-server --requirepass \"$$REDIS_PASSWORD\""]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:4.3-management
+    restart: unless-stopped
+    env_file: ./env/rabbitmq.env
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # SeaweedFS (S3 API). start.sh starts the server, then creates the buckets and service users
+  # listed in ./object-storage/. tr removes Windows line endings before the script runs.
+  object-storage:
+    image: chrislusf/seaweedfs:latest
+    restart: unless-stopped
+    env_file: ./env/object-storage.env
+    entrypoint: ["/bin/sh", "-c", "tr -d '\\r' < /setup/start.sh > /tmp/start.sh && exec /bin/sh /tmp/start.sh"]
+    volumes:
+      - object-storage-data:/data
+      - ./object-storage:/setup:ro
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  nginx:
+    image: nginxinc/nginx-unprivileged:stable   # Nginx as a non-root user, listening on 8080. TODO: pin a version tag
+    restart: unless-stopped
+    ports:
+      - "80:8080"    # port 80 on this machine -> 8080 inside the container
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+
+  # Catches emails, so testers never email real people. TODO: how to view the inbox safely on the VPS.
+  mailpit:
+    image: axllent/mailpit:latest   # TODO: pin a version tag from hub.docker.com/r/axllent/mailpit
+    restart: unless-stopped
+
+  # =====================================================================
+  # Services
+  # =====================================================================
+
+  user-service:
+    image: ghcr.io/motoxpress-wicky/user-service:not-built-yet
+    restart: unless-stopped
+    expose:
+      - "8080"
+    env_file: ./env/user-service.env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  product-service:
+    image: ghcr.io/motoxpress-wicky/product-service:not-built-yet
+    restart: unless-stopped
+    expose:
+      - "8081"
+    env_file: ./env/product-service.env
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      object-storage: { condition: service_healthy }
+
+  order-service:
+    image: ghcr.io/motoxpress-wicky/order-service:not-built-yet
+    restart: unless-stopped
+    expose:
+      - "8082"
+    env_file: ./env/order-service.env
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      object-storage: { condition: service_healthy }
+
+  notification-service:
+    image: ghcr.io/motoxpress-wicky/notification-service:not-built-yet
+    restart: unless-stopped
+    expose:
+      - "8083"
+    env_file: ./env/notification-service.env
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    volumes:
+      - ./env/firebase.json:/app/secrets/firebase.json:ro
+
+  payment-service:
+    image: ghcr.io/motoxpress-wicky/payment-service:not-built-yet
+    restart: unless-stopped
+    expose:
+      - "8084"
+    env_file: ./env/payment-service.env
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      object-storage: { condition: service_healthy }
+
+  users-ui:
+    image: ghcr.io/motoxpress-wicky/users-ui:not-built-yet
+    restart: unless-stopped
+    expose:
+      - "8080"
+
+  admin-ui:
+    image: ghcr.io/motoxpress-wicky/admin-ui:not-built-yet
+    restart: unless-stopped
+    expose:
+      - "8080"
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  object-storage-data:
