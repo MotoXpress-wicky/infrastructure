@@ -1,0 +1,97 @@
+# SHARED pipeline. Every service repo calls this file; nobody runs it directly.
+#
+# What it does:
+#   1. (if build: true) build the calling repo's Docker image and push it to
+#      ghcr.io/motoxpress-wicky/<service>:<tag>
+#   2. write that tag into environments/<environment>/docker-compose.yml in THIS repo, and commit
+#
+# How a service repo calls it: see docs/mvp/13-ci-cd.md (a file of about 25 lines).
+# Inside a called workflow, actions/checkout checks out the CALLING repo (the service).
+
+name: Release a service
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        description: "Image name = compose service name, for example order-service"
+        required: true
+        type: string
+      environment:
+        description: "local or staging (a folder in environments/)"
+        required: true
+        type: string
+      build:
+        description: "true = build and push a new image first; false = only move the tag"
+        required: false
+        type: boolean
+        default: true
+      tag:
+        description: "Image tag. Empty = the calling commit id."
+        required: false
+        type: string
+        default: ""
+    secrets:
+      INFRA_REPO_TOKEN:
+        description: "Token that may push to the infrastructure repo"
+        required: true
+
+env:
+  REGISTRY: ghcr.io/motoxpress-wicky
+
+jobs:
+  image:
+    if: inputs.build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write          # push to GitHub Container Registry with GITHUB_TOKEN
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and push the image
+        env:
+          TAG: ${{ inputs.tag || github.sha }}
+        run: |
+          IMAGE="$REGISTRY/${{ inputs.service }}:$TAG"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "Pushed $IMAGE"
+
+  update-compose:
+    needs: image
+    # Run after a successful build, or when there was nothing to build (build: false).
+    if: always() && (needs.image.result == 'success' || needs.image.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write the tag into environments/${{ inputs.environment }}/docker-compose.yml
+        env:
+          INFRA_TOKEN: ${{ secrets.INFRA_REPO_TOKEN }}
+          SERVICE: ${{ inputs.service }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          TAG: ${{ inputs.tag || github.sha }}
+        run: |
+          git clone --depth 1 "https://x-access-token:${INFRA_TOKEN}@github.com/MotoXpress-wicky/infrastructure.git" infra
+          cd infra
+          FILE="environments/$ENVIRONMENT/docker-compose.yml"
+          [ -f "$FILE" ] || { echo "No $FILE"; exit 1; }
+
+          # Replace only this service's image line, for example:
+          #   image: ghcr.io/motoxpress-wicky/order-service:OLD  ->  ...:NEW
+          sed -i -E "s#(image: ghcr\.io/motoxpress-wicky/${SERVICE}):[^[:space:]]+#\1:${TAG}#" "$FILE"
+          grep -q "ghcr.io/motoxpress-wicky/${SERVICE}:${TAG}" "$FILE" || { echo "No image line for $SERVICE in $FILE"; exit 1; }
+
+          if git diff --quiet; then echo "Tag already set. Nothing to do."; exit 0; fi
+
+          git config user.name  "${SERVICE} pipeline"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -am "${ENVIRONMENT}: ${SERVICE} ${TAG:0:7}"
+
+          # Two services may push at the same moment. Then rebase on the newer main and try again.
+          for attempt in 1 2 3 4 5; do
+            git push && exit 0
+            echo "Push failed (attempt $attempt). Rebasing and trying again."
+            git pull --rebase
+          done
+          echo "Could not push after 5 attempts"; exit 1

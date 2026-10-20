@@ -1,0 +1,49 @@
+# Checks the environment files on every pull request and every push to main.
+# A tag update from a service pipeline is a push to main, so it is checked too.
+
+name: Check compose files
+
+on:
+  pull_request:
+    paths:
+      - "environments/**"
+      - ".github/workflows/**"
+  push:
+    branches: [main]
+    paths:
+      - "environments/**"
+      - ".github/workflows/**"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [local, staging]
+    defaults:
+      run:
+        working-directory: environments/${{ matrix.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every env file used by compose is in git (the file, or its .example template)
+        run: |
+          for f in $(grep -oE '\./env/[a-z0-9.-]+\.env' docker-compose.yml | sort -u); do
+            [ -f "$f" ] || [ -f "$f.example" ] || { echo "Missing: $f (or $f.example)"; exit 1; }
+          done
+
+      - name: docker-compose.yml is valid (${{ matrix.environment }})
+        run: |
+          # Staging secret files are not in git. Use their templates for this check.
+          for f in env/*.example; do
+            [ -e "$f" ] || continue
+            [ -e "${f%.example}" ] || cp "$f" "${f%.example}"
+          done
+          docker compose config --quiet
+
+      - name: JSON templates are valid
+        run: |
+          for f in env/*.json.example; do
+            [ -e "$f" ] || continue
+            python3 -m json.tool "$f" > /dev/null
+          done
