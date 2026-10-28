@@ -116,7 +116,6 @@ services:
     env_file: ./env/product-service.env
     depends_on:
       postgres: { condition: service_healthy }
-      rabbitmq: { condition: service_healthy }
       object-storage: { condition: service_healthy }
 
   order-service:
