@@ -63,13 +63,17 @@ calls it; Nginx never routes it).
 | GET | `/api/v1/product/categories` | Public | Categories |
 | GET | `/api/v1/product/products` | Public | Search: `q`, `bikeModelId`, `categoryId`, `page`, `size` |
 | GET | `/api/v1/product/products/{id}` | Public | One part, fitment, photo URLs |
+| GET | `/api/v1/product/admin/brands` | Admin | All brands, hidden too |
+| GET | `/api/v1/product/admin/brands/{brandId}/models` | Admin | All models of a brand, hidden too |
+| GET | `/api/v1/product/admin/categories` | Admin | All categories, hidden too |
 | POST | `/api/v1/product/admin/brands` | Admin | Add brand |
 | PATCH | `/api/v1/product/admin/brands/{id}` | Admin | Rename, hide |
 | POST | `/api/v1/product/admin/brands/{brandId}/models` | Admin | Add bike model |
 | PATCH | `/api/v1/product/admin/models/{id}` | Admin | Edit, hide |
 | POST | `/api/v1/product/admin/categories` | Admin | Add category |
 | PATCH | `/api/v1/product/admin/categories/{id}` | Admin | Rename, hide |
-| GET | `/api/v1/product/admin/products` | Admin | All parts, hidden too |
+| GET | `/api/v1/product/admin/products` | Admin | All parts, hidden too. Filters: `q`, `categoryId`, `bikeModelId`, `active` |
+| GET | `/api/v1/product/admin/products/{id}` | Admin | One part with stock |
 | POST | `/api/v1/product/admin/products` | Admin | Add part + fitment + start stock |
 | PUT | `/api/v1/product/admin/products/{id}` | Admin | Edit part and fitment |
 | PATCH | `/api/v1/product/admin/products/{id}` | Admin | Hide or show |
@@ -95,9 +99,9 @@ calls it; Nginx never routes it).
 | POST | `/api/v1/order/admin/orders/{orderNo}/cancel` | Admin | Cancel before shipping |
 | GET | `/api/v1/order/admin/shipments` | Admin | Shipments. Filters: courier, status |
 | POST | `/api/v1/order/admin/shipments` | Admin | New shipment: order, courier, tracking number, optional photo |
-| POST | `/api/v1/order/admin/shipments/delivered` | Admin | Mark one or many delivered |
-| POST | `/api/v1/order/admin/shipments/returned` | Admin | Mark one or many returned, with a reason |
-| GET | `/api/v1/order/admin/shipments/{id}/pickup-receipt` | Admin | The pickup receipt photo |
+| POST | `/api/v1/order/admin/shipments/delivered` | Admin | Mark one or many delivered. Body `{"shipmentIds":[1,2]}`. Answer lists `done` and `failed` |
+| POST | `/api/v1/order/admin/shipments/returned` | Admin | Mark one or many returned. Body `{"shipmentIds":[1],"reason":"REFUSED"}` |
+| GET | `/api/v1/order/admin/shipments/{id}/pickup-receipt` | Admin | The pickup receipt file (photo or PDF, private) |
 
 ## notification-service (8083)
 

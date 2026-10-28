@@ -72,10 +72,10 @@ The two templates in `user-service/src/main/resources/templates/emails/` move he
 
 ## When sending fails
 
-1. The listener throws an error, so RabbitMQ keeps the message.
-2. RabbitMQ tries again.
-3. After a few tries the message goes to a dead-letter queue for a human to check.
-   TODO: choose the retry count and add the dead-letter queue to the event contract.
+1. The listener throws an error, so the message is not lost.
+2. It is tried again: 3 tries in all, 2 seconds then 4 seconds apart (settings in `application.yaml`).
+3. After that it goes to the dead-letter queue `notification.email.dlq` or `notification.push.dlq` for a person to check.
+   A message that can never work (no `messageId`, no email address) goes there at once (M38).
 
 ## Settings
 

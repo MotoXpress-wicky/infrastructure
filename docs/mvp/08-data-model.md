@@ -109,7 +109,7 @@ erDiagram
     PRODUCT_IMAGES {
         bigint id PK
         bigint product_id FK
-        varchar object_key "products/42/photo-1.jpg in bucket product-media"
+        varchar object_key "42/3f2c9a.jpg in bucket product-media; URL = MEDIA_BASE_URL + / + key"
         int sort_order
     }
     STOCK_RESERVATIONS {
@@ -117,6 +117,7 @@ erDiagram
         varchar order_no
         bigint product_id FK
         int quantity
+        decimal unit_price "price at reservation, so a repeated request gets the same answer"
         varchar status "RESERVED or RELEASED"
         timestamp created_at
         timestamp released_at
@@ -126,6 +127,7 @@ erDiagram
         bigint product_id FK
         int change_qty "+20 or -2"
         varchar reason "INITIAL, RESTOCK, CORRECTION, ORDER_RESERVED, ORDER_RELEASED"
+        varchar note "free text from the admin, for example new delivery"
         varchar order_no "when an order caused it"
         bigint admin_user_id "when an admin caused it"
         timestamp created_at

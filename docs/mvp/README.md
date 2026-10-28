@@ -86,7 +86,7 @@ Each step ends with something you can click and test.
 | Where | Question |
 |---|---|
 | [auth](06-dynamic/auth.md) | Google login behind Nginx: does Spring use the forwarded headers? |
-| [notification-service](05-components/notification-service.md) | Retry count and dead-letter queue for failed sends |
+| [events](07-events.md) | An "outbox" table so no event is lost when RabbitMQ is down at the moment of publishing (M19) |
 | [12-dev-cloud.md](12-dev-cloud.md) | For staging later: domain name, VPS provider and size, off-site backup tool |
 | [13-ci-cd.md](13-ci-cd.md) | Which token type CD uses to commit to the infrastructure repo |
 | Courier | Ask your courier: payout frequency, receipt format (PDF or Excel), fees, portal or API |
