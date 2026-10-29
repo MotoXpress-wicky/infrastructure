@@ -81,6 +81,16 @@ Each step ends with something you can click and test.
 | 9 | Push notifications (Firebase) | Phone shows "your order is on its way" |
 | 10 | A `Dockerfile`, `ci.yml` and `cd.yml` in every service repo (13-ci-cd.md) | After a merge: `git pull` + `docker compose pull && docker compose up -d` runs the new image |
 
+## Status (2026-10-29)
+
+| Part | State |
+|---|---|
+| product-service, order-service, notification-service, payment-service | Built, with tests. Verified on PostgreSQL 17 (not yet with RabbitMQ and Docker together) |
+| user-service | Flyway, `user.*` events, trace id, new paths: built. Not built: RS256 keys, bootstrap admin, admin endpoints (Users page) |
+| users-ui | Browse, cart, checkout, my orders: built. Not built: push notifications |
+| admin-ui | Orders, Shipments, Payments, Courier receipts, Parts (with photos and stock), Catalog: built. Not built: Users |
+| Dockerfile + `ci.yml` | Written for all seven repos. Images not built yet (Docker was off). `cd.yml` is not written (registry choice open) |
+
 ## Open questions
 
 | Where | Question |

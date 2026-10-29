@@ -22,7 +22,7 @@ flowchart TB
         boot["AdminBootstrap<br/>first admin at start-up"]
         captcha["CaptchaVerifier<br/>Turnstile"]
         jwt["JwtUtil<br/>signs tokens"]
-        mail["EmailService<br/>sends mail itself today"]
+        mail["EmailService<br/>not used any more (to remove)"]
         pub["EventPublisher<br/>user.* events"]
         repo["Repositories<br/>users, tokens, audit log"]
     end
@@ -78,8 +78,10 @@ flowchart TB
 | AuthService, PasswordResetService, RefreshTokenService | The login, reset and refresh logic | Built |
 | CaptchaVerifier | Interface; `TurnstileVerifier` checks the CAPTCHA token | Built |
 | JwtUtil | Creates and reads access tokens. **MVP change:** sign with an RS256 private key (decision M9) | Built, to change |
-| EmailService | Sends reset and password-changed emails directly. **MVP change:** remove it; publish events instead (decision M14) | Built, to remove |
-| EventPublisher | Publishes `user.registered`, `user.password.reset`, `user.password.changed` | Planned |
+| EmailService | Used to send the emails itself. Nothing calls it now (M44). **To remove** after your OK: the class, `templates/emails`, `AsyncConfig`, the mail settings and the mail and Thymeleaf dependencies | Built, unused |
+| EventPublisher + AccountEvents | Publish `user.registered` (form and Google), `user.password.reset`, `user.password.changed` after the commit. Event names are in `events.*` (M44) | Built |
+| RequestIdFilter | Gives every request a trace id (`X-Request-Id`); it goes into the logs and the `traceId` header of events | Built |
+| Flyway | `db/migration/V1__create_tables.sql`; Hibernate only validates (`ddl-auto: validate`). Checked on PostgreSQL 17 | Built |
 | AdminUserController + AdminUserService | List users, lock and unlock, promote to admin, write the audit log | Planned |
 | AdminBootstrap | At start-up: if no admin exists, give `ROLE_ADMIN` to the email set in config | Planned |
 | Repositories | `users`, `refresh_tokens`, `password_reset_token`, `admin_audit_log` | Built + 1 planned |
