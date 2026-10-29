@@ -63,6 +63,24 @@ The services' own ports (8080–8084) are **not** published; the browser reaches
 | http://localhost/media/products/&lt;key&gt; | A product photo |
 | http://localhost/media/avatars/&lt;key&gt; | A profile picture |
 
+## The first admin
+
+Nobody can make the first admin from the admin site, because every admin page needs an admin.
+So user-service makes one at start-up, from two lines in `env/user-service.env`:
+
+| Setting | Meaning |
+|---|---|
+| `ADMIN_BOOTSTRAP_EMAIL` | The account that becomes the first admin |
+| `ADMIN_BOOTSTRAP_PASSWORD` | Used only if that account does not exist yet: it is created with this password |
+
+1. Start everything (`docker compose up -d`).
+2. Open http://admin.localhost and log in with those two values.
+3. In **Users** you can make other accounts admins. Every change is written to the audit log.
+
+It does nothing once an admin exists, so the lines can stay. On a server, use your own email and a long random
+password, and remove the password line after the first start. The customer site and the admin site have
+**separate logins** (different host names, so different cookies).
+
 ## Working on one service
 
 | You want | Do |
