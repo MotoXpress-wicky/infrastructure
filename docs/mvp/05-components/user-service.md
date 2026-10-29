@@ -60,8 +60,6 @@ flowchart TB
     reset -.-> pub
     pub -.-> broker
 
-    classDef planned stroke-dasharray: 5 5
-    class adminc,adminsvc,boot,pub planned
 ```
 
 ## Parts
