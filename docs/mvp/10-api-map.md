@@ -117,7 +117,7 @@ calls it; Nginx never routes it).
 | GET | `/api/v1/payment/admin/payments` | Admin | Payments. Filters: status, courier, reference, tracking number |
 | GET | `/api/v1/payment/admin/payments/{paymentNo}` | Admin | One payment |
 | GET | `/api/v1/payment/admin/courier-receipts` | Admin | Courier receipts |
-| POST | `/api/v1/payment/admin/courier-receipts` | Admin | New receipt: details + PDF + tracking numbers → payments PAID |
+| POST | `/api/v1/payment/admin/courier-receipts` | Admin | New receipt (multipart: `courier`, `receiptNo`, `bankReference`, `receivedOn`, `amountReceived`, `trackingNumbers`, required `file`) → payments PAID |
 | GET | `/api/v1/payment/admin/courier-receipts/{id}` | Admin | One receipt with its payments |
 | GET | `/api/v1/payment/admin/courier-receipts/{id}/file` | Admin | Download the PDF |
 
