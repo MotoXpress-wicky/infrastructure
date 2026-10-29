@@ -1,7 +1,7 @@
 # admin-ui — components (C4 level 3)
 
 Job: the admin site. React + TypeScript + Vite, same style as users-ui. Dev port 3001,
-opened through Nginx at `http://admin.localhost` (M10). **Built:** every page except Users (user-service has no admin endpoints yet). The Stock page is part of the part page (`/parts/:id`: photos, stock change, stock history).
+opened through Nginx at `http://admin.localhost` (M10). **Built:** every page. The Stock page is part of the part page (`/parts/:id`: photos, stock change, stock history).
 
 ```mermaid
 flowchart TB
@@ -41,8 +41,6 @@ flowchart TB
     userf --> axios
     axios --> nginx
 
-    classDef planned stroke-dasharray: 5 5
-    class userf planned
 ```
 
 ## Pages, and what you change on each

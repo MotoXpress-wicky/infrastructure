@@ -86,9 +86,9 @@ Each step ends with something you can click and test.
 | Part | State |
 |---|---|
 | product-service, order-service, notification-service, payment-service | Built, with tests. Verified on PostgreSQL 17 (not yet with RabbitMQ and Docker together) |
-| user-service | Flyway, `user.*` events, trace id, new paths: built. Not built: RS256 keys, bootstrap admin, admin endpoints (Users page) |
+| user-service | Flyway (V1, V2), `user.*` events, trace id, new paths, first admin at start-up, admin endpoints and audit log: built. Not built: RS256 keys. Old `EmailService` still to remove |
 | users-ui | Browse, cart, checkout, my orders: built. Not built: push notifications |
-| admin-ui | Orders, Shipments, Payments, Courier receipts, Parts (with photos and stock), Catalog: built. Not built: Users |
+| admin-ui | Orders, Shipments, Payments, Courier receipts, Parts (with photos and stock), Catalog, Users (with audit log): all built |
 | Dockerfile + `ci.yml` | Written for all seven repos. Images not built yet (Docker was off). `cd.yml` is not written (registry choice open) |
 
 ## Open questions
