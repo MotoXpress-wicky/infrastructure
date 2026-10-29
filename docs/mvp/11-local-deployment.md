@@ -120,6 +120,6 @@ Services save only the object **key** in their database and send `MEDIA_BASE_URL
 | `object-storage/start.sh`, `buckets.conf`, `users.conf` | Start SeaweedFS; create buckets and per-service users |
 | `postgres/init/01-create-databases.sql` | 5 databases, 5 DB users (runs only on an empty volume) |
 | `env/*.env` | One settings file per container and the object-storage keys. In git, with local-only values (M37). |
-| `env/user-service.secrets.env`, `env/firebase.json` | The only real secrets (Google, Gmail, Firebase). Ignored by git; you create them. |
+| `env/user-service.secrets.env`, `env/firebase.json` | The only real secrets (Google, Firebase). Ignored by git; you create them. |
 
 Step-by-step commands: `infrastructure/README.md`.

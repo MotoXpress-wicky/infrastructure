@@ -100,7 +100,7 @@ services:
       - "8080"
     env_file:
       - ./env/user-service.env
-      # Real Google and Gmail secrets (ignored by git). Loaded only if the file exists.
+      # Real Google secrets (ignored by git). Loaded only if the file exists.
       - path: ./env/user-service.secrets.env
         required: false
     depends_on:

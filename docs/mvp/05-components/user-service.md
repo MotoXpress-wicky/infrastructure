@@ -22,7 +22,6 @@ flowchart TB
         boot["AdminBootstrap<br/>first admin at start-up"]
         captcha["CaptchaVerifier<br/>Turnstile"]
         jwt["JwtUtil<br/>signs tokens"]
-        mail["EmailService<br/>not used any more (to remove)"]
         pub["EventPublisher<br/>user.* events"]
         repo["Repositories<br/>users, tokens, audit log"]
     end
@@ -57,7 +56,6 @@ flowchart TB
     rate --> redis
     repo --> db
 
-    reset --> mail
     auth -.-> pub
     reset -.-> pub
     pub -.-> broker
@@ -78,7 +76,7 @@ flowchart TB
 | AuthService, PasswordResetService, RefreshTokenService | The login, reset and refresh logic | Built |
 | CaptchaVerifier | Interface; `TurnstileVerifier` checks the CAPTCHA token | Built |
 | JwtUtil | Creates and reads access tokens. **MVP change:** sign with an RS256 private key (decision M9) | Built, to change |
-| EmailService | Used to send the emails itself. Nothing calls it now (M44). **To remove** after your OK: the class, `templates/emails`, `AsyncConfig`, the mail settings and the mail and Thymeleaf dependencies | Built, unused |
+| (EmailService) | **Removed** (M44): the class, the email templates, `AsyncConfig`, the mail settings and the mail and Thymeleaf dependencies. notification-service sends the emails. | Removed |
 | EventPublisher + AccountEvents | Publish `user.registered` (form and Google), `user.password.reset`, `user.password.changed` after the commit. Event names are in `events.*` (M44) | Built |
 | RequestIdFilter | Gives every request a trace id (`X-Request-Id`); it goes into the logs and the `traceId` header of events | Built |
 | Flyway | `db/migration/V1__create_tables.sql`; Hibernate only validates (`ddl-auto: validate`). Checked on PostgreSQL 17 | Built |
