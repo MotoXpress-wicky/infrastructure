@@ -82,8 +82,8 @@ flowchart TB
 | EventPublisher + AccountEvents | Publish `user.registered` (form and Google), `user.password.reset`, `user.password.changed` after the commit. Event names are in `events.*` (M44) | Built |
 | RequestIdFilter | Gives every request a trace id (`X-Request-Id`); it goes into the logs and the `traceId` header of events | Built |
 | Flyway | `db/migration/V1__create_tables.sql`; Hibernate only validates (`ddl-auto: validate`). Checked on PostgreSQL 17 | Built |
-| AdminUserController + AdminUserService | List users, lock and unlock, promote to admin, write the audit log | Planned |
-| AdminBootstrap | At start-up: if no admin exists, give `ROLE_ADMIN` to the email set in config | Planned |
+| AdminUserController + AdminUserService | List users, lock and unlock, give or take ROLE_ADMIN, write the audit log. An admin cannot change their own account, and a demoted or locked admin cannot act even with an unexpired token. | Built |
+| AdminBootstrap | At start-up, if no admin exists: promotes `admin.bootstrap.email`, or creates it with `admin.bootstrap.password`. Does nothing once an admin exists. | Built |
 | Repositories | `users`, `refresh_tokens`, `password_reset_token`, `admin_audit_log` | Built + 1 planned |
 
 ## Settings in `application.yaml` (never in Java)

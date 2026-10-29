@@ -48,11 +48,9 @@ calls it; Nginx never routes it).
 | GET | `/api/v1/user/profile` | Login | Profile | Built |
 | GET | `/oauth2/authorization/google` | Public | Start Google login | Built |
 | GET | `/login/oauth2/code/google` | Google | Google comes back | Built |
-| GET | `/api/v1/user/admin/users` | Admin | List users | Planned |
-| POST | `/api/v1/user/admin/users/{id}/promote` | Admin | Make admin + audit log | Planned |
-| POST | `/api/v1/user/admin/users/{id}/lock` | Admin | Lock + audit log | Planned |
-| POST | `/api/v1/user/admin/users/{id}/unlock` | Admin | Unlock + audit log | Planned |
-| GET | `/api/v1/user/admin/audit-log` | Admin | Audit log | Planned |
+| GET | `/api/v1/user/admin/users` | Admin | List users. Filters: `q` (part of name or email), `page`, `size` | Built |
+| PATCH | `/api/v1/user/admin/users/{id}` | Admin | Body `{"locked": true}` and/or `{"admin": true}` (a missing field = no change). Writes the audit log. You cannot change your own account. | Built |
+| GET | `/api/v1/user/admin/audit-log` | Admin | Audit log, newest first. Filters: `page`, `size` | Built |
 
 ## product-service (8081)
 

@@ -9,7 +9,7 @@ These diagrams are the plan for the **Flyway** SQL files.
 
 ## user_db
 
-Owner: user-service. The first three tables are **Built**.
+Owner: user-service. All four tables are **Built** (Flyway `V1__create_tables.sql` and `V2__create_admin_audit_log.sql`).
 
 ```mermaid
 erDiagram
@@ -43,15 +43,18 @@ erDiagram
     }
     ADMIN_AUDIT_LOG {
         bigint id PK
-        bigint actor_user_id "the admin"
+        bigint admin_user_id "the admin; empty for the start-up bootstrap"
+        varchar admin_email "copied, so the log stays readable"
         bigint target_user_id FK
-        varchar action "BOOTSTRAP, PROMOTE, LOCK, UNLOCK"
+        varchar target_email "copied"
+        varchar action "LOCK, UNLOCK, GRANT_ADMIN, REVOKE_ADMIN"
         timestamp created_at
     }
 ```
 
-`ADMIN_AUDIT_LOG` is **Planned**. When writing Flyway, check the SQL that Hibernate creates
-today for `User.roles` (a `List<Role>`) and copy that shape.
+`users.roles` is a `varchar(255) array` column (that is how Hibernate maps a `List<Role>`). The migration copies
+the SQL that Hibernate made. To ask "does any admin exist?" the code joins the array with `array_to_string`
+(`array_contains` fails on H2 because Hibernate writes an enum literal as a number).
 
 ## product_db
 
@@ -285,5 +288,4 @@ erDiagram
 | `product_db` | `product_service` | Yes |
 | `order_db` | `order_service` | Yes |
 | `notification_db` | `notification_service` | Yes |
-| `payment_db` | `payment_service` | **No — must be added** |
-| `suggestion_db` | `suggestion_service` | Yes — **not needed**, remove |
+| `payment_db` | `payment_service` | Yes |
