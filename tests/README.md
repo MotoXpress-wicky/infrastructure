@@ -22,6 +22,18 @@ It needs the local env file `environments/local/env/user-service.env` (it reads 
 | Photos and files | object storage, and `/media/...` through Nginx |
 | Login and roles | 401 without login, 403 for a customer, 200 for an admin |
 
+## Outage check (by hand, about 2 minutes)
+
+The smoke test cannot stop RabbitMQ itself, so check the outbox (M46) like this:
+
+1. `docker compose -f environments/local/docker-compose.yml stop rabbitmq`
+2. Log in at http://localhost, put a part in the cart and place an order. **It must work** (a normal order page, maybe 2 seconds slower).
+3. Open http://admin.localhost, **Payments**. The order has no payment yet. (The event waits in the table `outbox_events` of order-service.)
+4. `docker compose -f environments/local/docker-compose.yml start rabbitmq`
+5. Wait up to about 30 seconds and reload **Payments**. The payment is there, `PENDING`, and the confirmation email is in http://mail.localhost.
+
+On the real jars with a stand-in broker this gave: checkout 201 in 1.7 s while the broker was down, and the payment and the email about 10 seconds after the broker came back, with no second payment.
+
 ## Settings (all optional)
 
 | Name | Meaning |
