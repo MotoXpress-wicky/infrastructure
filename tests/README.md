@@ -32,7 +32,7 @@ The smoke test cannot stop RabbitMQ itself, so check the outbox (M46) like this:
 4. `docker compose -f environments/local/docker-compose.yml start rabbitmq`
 5. Wait up to about 30 seconds and reload **Payments**. The payment is there, `PENDING`, and the confirmation email is in http://mail.localhost.
 
-On the real jars with a stand-in broker this gave: checkout 201 in 1.7 s while the broker was down, and the payment and the email about 10 seconds after the broker came back, with no second payment.
+On the real jars with a stand-in broker this gave: checkout 201 in about 2 s while the broker was down, and the payment and the email about 10 seconds after the broker came back, with no second payment. A burst test also passed: 30 simultaneous checkouts with a healthy broker took 1.2 s, and 12 simultaneous checkouts with the broker down took 0.1 s; every order got exactly one payment.
 
 ## Settings (all optional)
 
