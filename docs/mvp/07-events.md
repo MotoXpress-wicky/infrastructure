@@ -13,7 +13,7 @@ The MVP uses part of the full contract in
 | Header `messageId` | UUID set by the publisher. Listeners skip ids already handled. |
 | Header `traceId` | Proposed: the `X-Request-Id` of the request that caused the event |
 | Who declares | Exchange: publisher and listener. Queue and binding: listener only. |
-| When to publish | Only after the database commit (M19) |
+| When to publish | The event is saved in the publisher's own table `outbox_events` in the SAME transaction as the change, and sent right after the commit. If RabbitMQ is down it waits there and a retry (every 10 s) sends it (M46). A message can therefore arrive twice, so every listener skips ids it already handled |
 
 ## Picture: MVP routing
 

@@ -89,6 +89,7 @@ Each step ends with something you can click and test.
 | user-service | Flyway (V1, V2), `user.*` events, trace id, new paths, first admin at start-up, admin endpoints and audit log: built. Old `EmailService` removed. Not built: RS256 keys |
 | users-ui | Browse, cart, checkout, my orders: built. Not built: push notifications |
 | admin-ui | Orders, Shipments, Payments, Courier receipts, Parts (with photos and stock), Catalog, Users (with audit log): all built |
+| Events | Outbox in user-service, order-service and payment-service: an event is saved with the change and sent after the commit; if RabbitMQ is down it is sent later (M46). Checked on the real jars with a stand-in broker |
 | Dockerfile + `ci.yml` | Written for all seven repos. Images not built yet (Docker was off). `cd.yml` is not written (registry choice open) |
 
 ## Open questions
@@ -96,7 +97,7 @@ Each step ends with something you can click and test.
 | Where | Question |
 |---|---|
 | [auth](06-dynamic/auth.md) | Google login behind Nginx: does Spring use the forwarded headers? |
-| [events](07-events.md) | An "outbox" table so no event is lost when RabbitMQ is down at the moment of publishing (M19) |
+| [events](07-events.md) | Outbox (M46): with two copies of a service the same event can be sent twice and the order of events is not guaranteed between the copies. Listeners skip duplicates, but "shipped" arriving before "placed" would be refused. Use one copy of each service until this is solved (for example `SELECT ... FOR UPDATE SKIP LOCKED`) |
 | [12-dev-cloud.md](12-dev-cloud.md) | For staging later: domain name, VPS provider and size, off-site backup tool |
 | [13-ci-cd.md](13-ci-cd.md) | Which token type CD uses to commit to the infrastructure repo |
 | Courier | Ask your courier: payout frequency, receipt format (PDF or Excel), fees, portal or API |

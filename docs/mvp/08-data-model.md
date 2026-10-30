@@ -280,6 +280,22 @@ erDiagram
 
 `sent_notifications`: (`message_id`, `channel`) is unique. That is the duplicate check.
 
+## The outbox table (user_db, order_db and payment_db)
+
+Every service that publishes events has the same table (M46). A row is written in the same transaction as the change it announces.
+
+| Column | Meaning |
+|---|---|
+| `id` (uuid) | Also the `messageId` header of the message, so a retry sends the same id |
+| `event_name` | The routing key, for example `order.placed` |
+| `body` | The event as JSON text. In user-service it is wiped once the event is sent (it can hold a raw reset link) |
+| `trace_id` | The request id that caused the event |
+| `created_at` | Events are sent oldest first |
+| `sent_at` | Empty while the event waits |
+| `attempts`, `last_error` | How often sending failed, and the last reason |
+
+Migrations: order-service `V2__create_outbox.sql`, payment-service `V2__create_outbox.sql`, user-service `V3__create_outbox.sql`.
+
 ## Databases on the PostgreSQL server
 
 | Database | DB user | In `01-create-databases.sql` today? |
