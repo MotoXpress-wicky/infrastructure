@@ -63,6 +63,11 @@ The services' own ports (8080–8084) are **not** published; the browser reaches
 | http://localhost/media/products/&lt;key&gt; | A product photo |
 | http://localhost/media/avatars/&lt;key&gt; | A profile picture |
 
+## Check that everything works together
+
+After `docker compose up -d`, run `python tests/smoke.py` from the `infrastructure` folder. It goes through a whole shop
+day and prints PASS or FAIL for every step. See [tests/README.md](../../tests/README.md).
+
 ## The first admin
 
 Nobody can make the first admin from the admin site, because every admin page needs an admin.
