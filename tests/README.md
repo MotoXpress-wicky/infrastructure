@@ -33,6 +33,13 @@ to an hour, so a second run soon after the first can fail on the reset check: th
 Checked on the real jar with a Redis stand-in that speaks the real protocol and runs Lua scripts (`fakeredis`): 13/13
 direct, 8/8 through one address. Real Redis was not available (Docker was off).
 
+## Odd requests check
+
+`python tests/odd_requests.py` sends mistakes to all five services: an address that does not exist, a method the address
+does not know, a wrong content type and a body that is not JSON. Each must get the right 4xx status (404, 405, 415, 400,
+or 401 when not logged in) and the shared error JSON, never a 500. Use `SMOKE_<NAME>_URL` to reach a service without
+Nginx. Checked on the real jars: 24/24.
+
 ## Outage check (by hand, about 2 minutes)
 
 The smoke test cannot stop RabbitMQ itself, so check the outbox (M46) like this:
