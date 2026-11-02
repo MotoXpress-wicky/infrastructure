@@ -22,6 +22,17 @@ It needs the local env file `environments/local/env/user-service.env` (it reads 
 | Photos and files | object storage, and `/media/...` through Nginx |
 | Login and roles | 401 without login, 403 for a customer, 200 for an admin |
 
+## Rate limit check
+
+`python tests/rate_limit.py` tries to break the limits of user-service: 5 wrong passwords per email, 3 reset requests per
+email, the 429 answer with its error JSON and `Retry-After`, and that other people are not affected. With
+`SMOKE_DIRECT=1 SMOKE_USER_URL=http://localhost:8080` (user-service without Nginx in front) it also checks the limits
+per client address (30 logins, 5 registrations). Read the top of the file for details. The limits stay in Redis for up
+to an hour, so a second run soon after the first can fail on the reset check: that is the limit working.
+
+Checked on the real jar with a Redis stand-in that speaks the real protocol and runs Lua scripts (`fakeredis`): 13/13
+direct, 8/8 through one address. Real Redis was not available (Docker was off).
+
 ## Outage check (by hand, about 2 minutes)
 
 The smoke test cannot stop RabbitMQ itself, so check the outbox (M46) like this:
